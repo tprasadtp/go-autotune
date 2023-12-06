@@ -1,0 +1,12 @@
+{
+  // Enable golangci-lint with config in the repository.
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": [
+    "--fast"
+  ],
+  // Default formatter is gofumpt.
+  "go.formatTool": "gofumpt",
+  // Enable go vulnerability checks.
+  "go.diagnostic.vulncheck": "Imports",
+  "go.testTimeout": "60s",
+}

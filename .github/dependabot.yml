@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    labels:
+      - "dependabot"
+      - "dependencies"
+      - "dep/actions"
+      - "luna/autoupdate"
+    commit-message:
+      prefix: "chore(deps):"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+    pull-request-branch-name:
+      separator: "-"
+
+  # For go, because of MVS, only security updates are relevant.
+  # Ignore version updates as this package is a library.
+  - package-ecosystem: gomod
+    directory: /
+    labels:
+      - "dependabot"
+      - "dependencies"
+      - "dep/go"
+      - "luna/autoupdate"
+    commit-message:
+      prefix: "chore(deps):"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+    pull-request-branch-name:
+      separator: "-"
+    # Disable version updates and only apply security updates.
+    open-pull-requests-limit: 0

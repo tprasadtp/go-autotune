@@ -1,0 +1,49 @@
+name: test
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+          - "1.21"
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go ${{ matrix.go }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Create Coverage data directory (Unix)
+        if: runner.os != 'Windows'
+        run: mkdir -p .gocover
+
+      - name: Create Coverage data directory (Windows)
+        if: runner.os == 'Windows'
+        run: New-Item -ItemType Directory -Path .gocover
+
+      - name: Test
+        # Without '--' in --test.gocoverdir, powershell mangles arguments.
+        run: go test -v -cover -count 1 --test.gocoverdir .gocover ./...
+        env:
+          CGO_ENABLED: "0"
+
+      - name: Coverage Create Profile
+        # Do not use '-{flag}={arg}' format, as powershell mangles arguments with dots.
+        run: go tool covdata textfmt -i .gocover -o .gocover/coverage.out
+
+      - name: Coverage View Profile
+        # Do not use '-{flag}={arg}' format, as powershell mangles arguments with dots.
+        run: go tool cover -func .gocover/coverage.out
