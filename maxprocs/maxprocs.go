@@ -5,16 +5,24 @@ package maxprocs
 
 import (
 	"context"
-	"github.com/tprasadtp/go-autotune/internal/discard"
 	"log/slog"
+	"math"
 	"os"
 	"runtime"
 	"strconv"
+
+	"github.com/tprasadtp/go-autotune/internal/cache"
+	"github.com/tprasadtp/go-autotune/internal/discard"
 )
+
+type config struct {
+	Logger    *slog.Logger
+	RoundFunc func(float64) uint64
+}
 
 // Current returns current GOMAXPROCS settings.
 func Current() int {
-	return runtime.GOMAXPROCS(0)
+	return runtime.GOMAXPROCS(-1)
 }
 
 // Configure configures GOMAXPROCS.
@@ -39,19 +47,74 @@ func Configure(opts ...Option) {
 		cfg.Logger = slog.New(discard.NewDiscardHandler())
 	}
 
+	// If rounding function is not specified use math.ceil
+	if cfg.RoundFunc == nil {
+		cfg.RoundFunc = func(f float64) uint64 {
+			if f < 0 {
+				return 0
+			}
+			return uint64(math.Ceil(f))
+		}
+	}
+
+	snapshot := runtime.GOMAXPROCS(-1)
+
 	// Check if GOMAXPROCS env variable is set.
 	goMaxProcsEnv := os.Getenv("GOMAXPROCS")
 	if goMaxProcsEnv != "" {
 		maxProcsEnvParse, err := strconv.Atoi(goMaxProcsEnv)
 		if err == nil && maxProcsEnvParse > 0 {
-			cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
-				"Setting GOMAXPROCS from environment variable", slog.String("GOMAXPROCS", goMaxProcsEnv))
-			runtime.GOMAXPROCS(maxProcsEnvParse)
-			return
+			if snapshot != maxProcsEnvParse {
+				cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
+					"Setting GOMAXPROCS from environment variable",
+					slog.String("GOMAXPROCS", goMaxProcsEnv))
+				runtime.GOMAXPROCS(maxProcsEnvParse)
+			} else {
+				cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "GOMAXPROCS is already set",
+					slog.String("GOMAXPROCS", goMaxProcsEnv),
+				)
+			}
+		} else {
+			cfg.Logger.LogAttrs(ctx, slog.LevelError,
+				"Ignoring invalid GOMAXPROCS environment variable",
+				slog.String("GOMAXPROCS", goMaxProcsEnv))
 		}
+		return
+	}
 
-		// GOMAXPROCS is invalid.
-		cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
-			"Ignoring invalid GOMAXPROCS environment variable", slog.String("GOMAXPROCS", goMaxProcsEnv))
+	// Get CGroup Info.
+	ci, err := cache.GetCgroupInfo()
+	if err != nil {
+		cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get cgroup info",
+			slog.Any("err", err))
+		return
+	}
+
+	cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained cgroup info",
+		slog.Float64("cgroup.CPUQuota", ci.CPUQuota),
+		slog.Uint64("cgroup.MemoryMax", ci.MemoryMax),
+	)
+
+	if ci.CPUQuotaDefined {
+		// Round off fractional CPU using defined RoundFunc.
+		procs := cfg.RoundFunc(ci.CPUQuota)
+
+		// GOMAXPROCS ensure at-least 1
+		if procs < 1 {
+			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Selecting minimum possible GOMAXPROCS value")
+			procs = 1
+		}
+		if snapshot != int(procs) {
+			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Setting GOMAXPROCS",
+				slog.String("GOMAXPROCS", strconv.FormatUint(procs, 10)),
+			)
+			runtime.GOMAXPROCS(int(procs))
+		} else {
+			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "GOMAXPROCS is already set",
+				slog.String("GOMAXPROCS", strconv.FormatUint(procs, 10)),
+			)
+		}
+	} else {
+		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "CPUQuota is not defined/unlimited")
 	}
 }

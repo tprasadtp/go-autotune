@@ -116,27 +116,49 @@ linters-settings:
               - google.golang.org/protobuf
             reason: "See https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules"
 
-        # Use stdlib replacements.
+        # Use stdlib or custom replacements.
         - github.com/mitchellh/go-homedir:
             reason: "Use stdlib provided os.UserHomeDir()."
+
         - github.com/hashicorp/go-multierror:
             reason: "Use stdlib provided errors.Join() available in go 1.20."
         - go.uber.org/multierr:
             reason: "Use stdlib provided errors.Join() available in go 1.20."
-        - github.com/hashicorp/go-hclog:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
-        - github.com/rs/zerolog:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
-        - github.com/sirupsen/logrus:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
-        - go.uber.org/zap:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
         - github.com/pkg/errors:
             reason: "Use error wrapping available in stdlib"
 
+        - github.com/hashicorp/go-hclog:
+            reason: "Use log/slog or github.com/tprasadtp/log package."
+            recommendations:
+              - "log/slog"
+              - "github.com/tprasadtp/log"
+        - github.com/rs/zerolog:
+            reason: "Use log/slog or github.com/tprasadtp/log package."
+            recommendations:
+              - "log/slog"
+              - "github.com/tprasadtp/log"
+        - github.com/sirupsen/logrus:
+            reason: "Use log/slog or github.com/tprasadtp/log package."
+            recommendations:
+              - "log/slog"
+              - "github.com/tprasadtp/log"
+        - go.uber.org/zap:
+            recommendations:
+              - "log/slog"
+              - "github.com/tprasadtp/log"
+
+        - go.uber.org/automaxprocs:
+            reason: "Does not handle fractional CPUs well and does not configure GOMEMLIMIT."
+            recommendations:
+              - "github.com/tprasadtp/go-autotune"
+        - github.com/KimMachineGun/automemlimit:
+            reason: "Does not support cgroups mounted at non standard location and does not configure GOMAXPROCS."
+            recommendations:
+              - "github.com/tprasadtp/go-autotune"
+
         # Hashicorp has changed their license to BUSL for most products.
-        # Avoid them. Libraries may not be under BUSL,
-        # but they directly or indirectly depend on BUSL licensed product.
+        # Libraries may not be under BUSL, but they directly or indirectly
+        # depend on BUSL licensed product.
         # --------------------------------------------------------------------
 
         # Hashicorp Terraform

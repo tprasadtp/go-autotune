@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package parse
+package shared
 
 import (
 	"fmt"
@@ -22,9 +22,7 @@ const (
 
 // Size parses given human readable string to bytes.
 // This accepts ~string or ~[]byte to allow directly using [json.Number].
-func Size[T ~string](size T) (uint64, error) {
-	s := string(size)
-
+func Size(s string) (uint64, error) {
 	// As special case if file size empty return zero value.
 	if s == "" {
 		return 0, nil

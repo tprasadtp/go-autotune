@@ -18,7 +18,7 @@ func (opt *optionFunc) apply(f *config) {
 	opt.fn(f)
 }
 
-// WithLogger configures the logger used for setting GOMAXPROCS.
+// WithLogger configures the logger used for setting GOMEMLIMIT.
 func WithLogger(logger *slog.Logger) Option {
 	if logger != nil {
 		return &optionFunc{
@@ -28,4 +28,14 @@ func WithLogger(logger *slog.Logger) Option {
 		}
 	}
 	return nil
+}
+
+// WithReservePercent configures percentage of available memory to reserve before setting
+// GOMEMLIMIT. Invalid values are ignored. Default is 10%.
+func WithReservePercent(percent uint64) Option {
+	return &optionFunc{
+		fn: func(c *config) {
+			c.ReservePercent = percent
+		},
+	}
 }
