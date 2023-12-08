@@ -5,21 +5,20 @@ package memlimit
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"math"
 	"os"
 	"runtime/debug"
-	"strconv"
 
-	"github.com/tprasadtp/go-autotune/internal/cache"
-	"github.com/tprasadtp/go-autotune/internal/shared"
-
+	"github.com/tprasadtp/go-autotune/internal/cgroup"
 	"github.com/tprasadtp/go-autotune/internal/discard"
+	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
 type config struct {
 	Logger         *slog.Logger
 	ReservePercent uint64
+	MemLimitFunc   func() (uint64, uint64, error)
 }
 
 // Current returns current memelimit in bytes.
@@ -49,6 +48,18 @@ func Configure(opts ...Option) {
 		cfg.Logger = slog.New(discard.NewDiscardHandler())
 	}
 
+	// If MemLimitFunc is not specified use default based on CGroupV2.
+	if cfg.MemLimitFunc == nil {
+		//nolint:nonamedreturns // for docs.
+		cfg.MemLimitFunc = func() (max uint64, high uint64, err error) {
+			info, err := cgroup.GetInfo("", "")
+			if err != nil {
+				return 0, 0, fmt.Errorf("memlimit: failed to get memory limits: %w", err)
+			}
+			return info.MemoryMax, info.MemoryHigh, nil
+		}
+	}
+
 	// Check if GOMEMLIMIT env variable is set.
 	goMemLimitEnv := os.Getenv("GOMEMLIMIT")
 	if goMemLimitEnv != "" {
@@ -64,64 +75,59 @@ func Configure(opts ...Option) {
 		return
 	}
 
-	// Get CGroup Info.
-	ci, err := cache.GetCgroupInfo()
+	// Get memory limits.
+	max, high, err := cfg.MemLimitFunc()
 	if err != nil {
-		cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get cgroup info",
+		cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get memory limits",
 			slog.Any("err", err))
 		return
 	}
 
-	cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained cgroup info",
-		slog.Float64("cgroup.CPUQuota", ci.CPUQuota),
-		slog.Uint64("cgroup.MemoryMax", ci.MemoryMax),
+	cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained memory limits",
+		slog.Uint64("memory.max", max),
+		slog.Uint64("memory.high", high),
 	)
 
-	cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained cgroup info",
-		slog.Float64("cgroup.CPUQuota", ci.CPUQuota),
-		slog.Uint64("cgroup.MemoryMax", ci.MemoryMax),
-	)
+	// if ci.MemoryMaxDefined {
+	// 	// Reserve 10% by default.
+	// 	if cfg.ReservePercent == 0 {
+	// 		cfg.ReservePercent = 10
+	// 	}
 
-	if ci.MemoryMaxDefined {
-		// Reserve 10% by default.
-		if cfg.ReservePercent == 0 {
-			cfg.ReservePercent = 10
-		}
+	// 	// Set default ReservePercent value and ignore invalid values.
+	// 	switch {
+	// 	case cfg.ReservePercent == 0:
+	// 		cfg.ReservePercent = 10
+	// 		cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
+	// 			"Using default ReservePercent value", slog.Uint64("ReservePercent", cfg.ReservePercent))
+	// 	case cfg.ReservePercent < 1 || cfg.ReservePercent > 99:
+	// 		cfg.Logger.LogAttrs(ctx, slog.LevelError,
+	// 			"Ignoring ReservePercent out of bounds value", slog.Uint64("ReservePercent", cfg.ReservePercent))
+	// 		cfg.ReservePercent = 10
+	// 	}
 
-		// Set default ReservePercent value and ignore invalid values.
-		switch {
-		case cfg.ReservePercent == 0:
-			cfg.ReservePercent = 10
-			cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
-				"Using default ReservePercent value", slog.Uint64("ReservePercent", cfg.ReservePercent))
-		case cfg.ReservePercent < 1 || cfg.ReservePercent > 99:
-			cfg.Logger.LogAttrs(ctx, slog.LevelError,
-				"Ignoring ReservePercent out of bounds value", slog.Uint64("ReservePercent", cfg.ReservePercent))
-			cfg.ReservePercent = 10
-		}
-
-		// Calculate max memory.
-		max := ci.MemoryMax - uint64(math.Ceil(float64(ci.MemoryMax)*float64(1/cfg.ReservePercent)))
-		snapshot := debug.SetMemoryLimit(-1)
-		if snapshot != int64(max) {
-			cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
-				"Setting GOMEMLIMIT", slog.String("GOMEMLIMIT", strconv.FormatUint(max, 10)))
-			defer func() {
-				err := recover()
-				if err != nil {
-					cfg.Logger.LogAttrs(ctx, slog.LevelError,
-						"panic while setting SetMemoryLimit(GOMEMLIMIT), reverting the change",
-						slog.Any("err", err))
-					debug.SetMemoryLimit(snapshot)
-				}
-			}()
-			debug.SetMemoryLimit(int64(max))
-		} else {
-			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "GOMEMLIMIT is already set",
-				slog.String("GOMEMLIMIT", strconv.FormatUint(max, 10)),
-			)
-		}
-	} else {
-		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "MemoryMax is not defined")
-	}
+	// 	// Calculate max memory.
+	// 	max := ci.MemoryMax - uint64(math.Ceil(float64(ci.MemoryMax)*float64(1/cfg.ReservePercent)))
+	// 	snapshot := debug.SetMemoryLimit(-1)
+	// 	if snapshot != int64(max) {
+	// 		cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
+	// 			"Setting GOMEMLIMIT", slog.String("GOMEMLIMIT", strconv.FormatUint(max, 10)))
+	// 		defer func() {
+	// 			err := recover()
+	// 			if err != nil {
+	// 				cfg.Logger.LogAttrs(ctx, slog.LevelError,
+	// 					"panic while setting SetMemoryLimit(GOMEMLIMIT), reverting the change",
+	// 					slog.Any("err", err))
+	// 				debug.SetMemoryLimit(snapshot)
+	// 			}
+	// 		}()
+	// 		debug.SetMemoryLimit(int64(max))
+	// 	} else {
+	// 		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "GOMEMLIMIT is already set",
+	// 			slog.String("GOMEMLIMIT", strconv.FormatUint(max, 10)),
+	// 		)
+	// 	}
+	// } else {
+	// 	cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "MemoryMax is not defined")
+	// }
 }

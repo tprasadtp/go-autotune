@@ -41,16 +41,23 @@ func getInfo(mountInfo string, cgroup string) (*Info, error) {
 
 	// Read cpu.max
 	cpuMaxPath := filepath.Join(mount, name, "cpu.max")
-	v.CPUQuota, v.CPUQuotaDefined, err = getCPUQuotaFromFile(cpuMaxPath)
+	v.CPUQuota, err = getCPUQuotaFromFile(cpuMaxPath)
 	if err != nil {
 		return nil, fmt.Errorf("cgroup: failed to get cpu quota: %w", err)
 	}
 
 	// Read memory.max
 	memMaxPath := filepath.Join(mount, name, "memory.max")
-	v.MemoryMax, v.MemoryMaxDefined, err = getMaxMemoryFromFile(memMaxPath)
+	v.MemoryMax, err = getMemLimitFromFile(memMaxPath)
 	if err != nil {
-		return nil, fmt.Errorf("cgroup: failed to get memory limits: %w", err)
+		return nil, fmt.Errorf("cgroup: failed to get memory max: %w", err)
+	}
+
+	// Read memory.high
+	memeoryHighPath := filepath.Join(mount, name, "memory.high")
+	v.MemoryHigh, err = getMemLimitFromFile(memeoryHighPath)
+	if err != nil {
+		return nil, fmt.Errorf("cgroup: failed to get memory high: %w", err)
 	}
 
 	return v, nil
@@ -58,11 +65,13 @@ func getInfo(mountInfo string, cgroup string) (*Info, error) {
 
 // getCPUQuotaFromFile reads from path cpu.max quota specified.
 // This never returns Nan or Inf.
-func getCPUQuotaFromFile(path string) (float64, bool, error) {
+func getCPUQuotaFromFile(path string) (float64, error) {
 	file, err := os.Open(path)
 	if err != nil {
+		// If file is missing then cpu controller is not enabled
+		// or cpu limits are not defined.
 		if errors.Is(err, os.ErrNotExist) {
-			return -1, false, nil
+			return -1, nil
 		}
 	}
 
@@ -70,47 +79,48 @@ func getCPUQuotaFromFile(path string) (float64, bool, error) {
 	if scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) == 0 || len(fields) > 2 {
-			return -1, false, fmt.Errorf("invalid format cpu.max")
+			return -1, fmt.Errorf("invalid format cpu.max")
 		}
 
 		// No CPU limits.
 		if fields[0] == "max" {
-			return 0, false, nil
+			return 0, nil
 		}
 
 		// Get Maximum CPU quota
 		max, err := strconv.ParseUint(fields[0], 10, 64)
 		if err != nil || max == 0 {
-			return -1, false, fmt.Errorf("invalid format cpu.max")
+			return -1, fmt.Errorf("invalid format cpu.max")
 		}
 
 		// Check if period is defined.
 		var period uint64
 		if len(fields) == 2 {
 			period, err = strconv.ParseUint(fields[1], 10, 64)
-			if err != nil || period == 0 {
-				return -1, false, fmt.Errorf("invalid format cpu.max")
+			if err != nil {
+				return -1, fmt.Errorf("invalid format cpu.max: %w", err)
 			}
 		} else {
 			// Default CPU period value.
 			period = 100000
 		}
 
-		return float64(max) / float64(period), true, nil
+		return float64(max) / float64(period), nil
 	}
 
 	if err := scanner.Err(); err != nil {
-		return -1, false, fmt.Errorf("failed to scan cpu.max")
+		return -1, fmt.Errorf("failed to scan cpu.max: %w", err)
 	}
 
-	return -1, false, io.ErrUnexpectedEOF
+	return -1, io.ErrUnexpectedEOF
 }
 
-func getMaxMemoryFromFile(path string) (uint64, bool, error) {
+func getMemLimitFromFile(path string) (uint64, error) {
 	file, err := os.Open(path)
+	base := filepath.Base(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return 0, false, nil
+			return 0, nil
 		}
 	}
 
@@ -118,28 +128,28 @@ func getMaxMemoryFromFile(path string) (uint64, bool, error) {
 	if scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) > 1 {
-			return 0, false, fmt.Errorf("invalid format memory.max")
+			return 0, fmt.Errorf("invalid format %s", base)
 		}
 
 		// No memory limits.
 		if fields[0] == "max" {
-			return 0, false, nil
+			return 0, nil
 		}
 
-		// Get Maximum Memory Quota
+		// Get Value
 		max, err := strconv.ParseUint(fields[0], 10, 64)
-		if err != nil || max <= 0 {
-			return 0, false, fmt.Errorf("invalid format memory.max")
+		if err != nil {
+			return 0, fmt.Errorf("invalid format %s: %w", base, err)
 		}
 
-		return max, true, nil
+		return max, nil
 	}
 
 	if err := scanner.Err(); err != nil {
-		return 0, false, fmt.Errorf("failed to scan memory.max")
+		return 0, fmt.Errorf("failed to scan %s: %w", base, err)
 	}
 
-	return 0, false, io.ErrUnexpectedEOF
+	return 0, io.ErrUnexpectedEOF
 }
 
 // mountPointFromFile parses given mountinfo file and extracts cgroup v2 mountpoint

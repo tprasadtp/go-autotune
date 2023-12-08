@@ -47,3 +47,18 @@ func WithRoundFunc(fn func(float64) uint64) Option {
 	}
 	return nil
 }
+
+// WithCPUQuotaFunc can be used to replace default CPU quota detection algorithm.
+//
+// This is advanced option intended to be used to support exotic configurations.
+// Do not use this unless you are familiar with internals of this package.
+func WithCPUQuotaFunc(fn func() (float64, error)) Option {
+	if fn != nil {
+		return &optionFunc{
+			fn: func(c *config) {
+				c.CPUQuotaFunc = fn
+			},
+		}
+	}
+	return nil
+}

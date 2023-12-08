@@ -5,19 +5,21 @@ package maxprocs
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"math"
 	"os"
 	"runtime"
 	"strconv"
 
-	"github.com/tprasadtp/go-autotune/internal/cache"
+	"github.com/tprasadtp/go-autotune/internal/cgroup"
 	"github.com/tprasadtp/go-autotune/internal/discard"
 )
 
 type config struct {
-	Logger    *slog.Logger
-	RoundFunc func(float64) uint64
+	Logger       *slog.Logger
+	RoundFunc    func(float64) uint64
+	CPUQuotaFunc func() (float64, error)
 }
 
 // Current returns current GOMAXPROCS settings.
@@ -45,6 +47,17 @@ func Configure(opts ...Option) {
 	// If logger is nil, use a discard logger.
 	if cfg.Logger == nil {
 		cfg.Logger = slog.New(discard.NewDiscardHandler())
+	}
+
+	// If CPUQuotaFunc is not specified use default based on CGroupV2.
+	if cfg.CPUQuotaFunc == nil {
+		cfg.CPUQuotaFunc = func() (float64, error) {
+			info, err := cgroup.GetInfo("", "")
+			if err != nil {
+				return -1, fmt.Errorf("maxprocs: failed to get cpu quota: %w", err)
+			}
+			return info.CPUQuota, nil
+		}
 	}
 
 	// If rounding function is not specified use math.ceil
@@ -83,21 +96,19 @@ func Configure(opts ...Option) {
 	}
 
 	// Get CGroup Info.
-	ci, err := cache.GetCgroupInfo()
+	quota, err := cfg.CPUQuotaFunc()
 	if err != nil {
-		cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get cgroup info",
+		cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get CPU quota info",
 			slog.Any("err", err))
 		return
 	}
 
-	cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained cgroup info",
-		slog.Float64("cgroup.CPUQuota", ci.CPUQuota),
-		slog.Uint64("cgroup.MemoryMax", ci.MemoryMax),
-	)
-
-	if ci.CPUQuotaDefined {
+	if quota > 0 {
+		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained CPU Quota",
+			slog.Float64("CPUQuota", quota),
+		)
 		// Round off fractional CPU using defined RoundFunc.
-		procs := cfg.RoundFunc(ci.CPUQuota)
+		procs := cfg.RoundFunc(quota)
 
 		// GOMAXPROCS ensure at-least 1
 		if procs < 1 {

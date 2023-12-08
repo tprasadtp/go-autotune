@@ -20,12 +20,13 @@ type Info struct {
 	Name string
 
 	// From cpu.max
-	CPUQuota        float64
-	CPUQuotaDefined bool
+	CPUQuota float64
 
 	// From memory.max
-	MemoryMax        uint64
-	MemoryMaxDefined bool
+	MemoryMax uint64
+
+	// From memory.high
+	MemoryHigh uint64
 }
 
 // Returns cgroup info for current process from given mountinfo file and cgroup file.

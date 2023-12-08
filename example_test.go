@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	_ "github.com/tprasadtp/go-autotune" // Importing this adjusts GOMAXPROCS and GOMEMLIMIT
+	_ "github.com/tprasadtp/go-autotune" // Importing this adjusts GOMAXPROCS & GOMEMLIMIT
 )
 
 // To render a whole-file example, a package-level declaration is required.
