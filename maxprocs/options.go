@@ -5,7 +5,7 @@ package maxprocs
 
 import "log/slog"
 
-// Option to apply for setting gomaxprocs.
+// Option to apply while setting GOMAXPROCS.
 type Option interface {
 	apply(*config)
 }
@@ -36,7 +36,7 @@ func WithLogger(logger *slog.Logger) Option {
 // CPU throttling. Replacing this with custom function may result in underutilized
 // or significantly throttled CPU.
 //
-// Unless you are absolutely sure of your requirements do not use this.
+// Unless you are sure of your requirements, do not use this.
 func WithRoundFunc(fn func(float64) uint64) Option {
 	if fn != nil {
 		return &optionFunc{
@@ -50,8 +50,8 @@ func WithRoundFunc(fn func(float64) uint64) Option {
 
 // WithCPUQuotaFunc can be used to replace default CPU quota detection algorithm.
 //
-// This is advanced option intended to be used to support exotic configurations.
-// Do not use this unless you are familiar with internals of this package.
+// This is an advanced option intended to be used to support exotic configurations.
+// Do not use this unless you are familiar with the internals of this package.
 func WithCPUQuotaFunc(fn func() (float64, error)) Option {
 	if fn != nil {
 		return &optionFunc{

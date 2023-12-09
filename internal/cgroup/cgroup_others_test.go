@@ -18,7 +18,7 @@ func TestGetInfo(t *testing.T) {
 		t.Errorf("expected nil on non linux platform")
 	}
 
-	if !errors.Is(err, cgroup.ErrUnsupportedPlatform) {
-		t.Errorf("expected error=%s got=%s", cgroup.ErrUnsupportedPlatform, err)
+	if !errors.Is(err, errors.ErrUnsupported) {
+		t.Errorf("expected error=%s got=%s", errors.ErrUnsupported, err)
 	}
 }

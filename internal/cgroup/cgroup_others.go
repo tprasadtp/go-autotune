@@ -6,5 +6,5 @@
 package cgroup
 
 func getInfo(mountInfoFile string, cgroupFile string) (*Info, error) {
-	return nil, ErrUnsupportedPlatform
+	return nil, fmt.Errorf("cgroup: unsupported platform(%s): %w", runtime.GOOS, errors.ErrUnsupported)
 }

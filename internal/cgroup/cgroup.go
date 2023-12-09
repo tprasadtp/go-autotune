@@ -3,15 +3,7 @@
 
 package cgroup
 
-import (
-	"fmt"
-	"runtime"
-)
-
-// ErrUnsupportedPlatform is returned when cgroups is not supported on the platform.
-var ErrUnsupportedPlatform = fmt.Errorf("cgroup: unsupported platform, %s", runtime.GOOS)
-
-// Info is cgroup info for current process.
+// Info is cgroup info for the current process.
 type Info struct {
 	// Cgroup mount point.
 	Mount string
@@ -23,14 +15,14 @@ type Info struct {
 	CPUQuota float64
 
 	// From memory.max
-	MemoryMax uint64
+	MemoryMax int64
 
 	// From memory.high
-	MemoryHigh uint64
+	MemoryHigh int64
 }
 
-// Returns cgroup info for current process from given mountinfo file and cgroup file.
-// For non linux systems this always returns nil and [ErrUnsupportedPlatform].
+// GetInfo returns cgroup info for the current process from given mountinfo file and cgroup file.
+// For non linux systems, this always returns nil and [errors.ErrUnsupported].
 func GetInfo(mountInfoFile string, cgroupFile string) (*Info, error) {
 	return getInfo(mountInfoFile, cgroupFile)
 }

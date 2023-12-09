@@ -135,11 +135,6 @@
     "name": "s/wont-fix"
   },
   {
-    "color": "ceef86",
-    "description": "GitHub Actions Updates",
-    "name": "dep/actions"
-  },
-  {
     "color": "844fba",
     "description": "Tests/Testing code",
     "name": "tests"
@@ -160,44 +155,14 @@
     "name": "bot"
   },
   {
+    "color": "ceef86",
+    "description": "GitHub Actions Updates",
+    "name": "dep/actions"
+  },
+  {
     "color": "844fba",
     "description": "Dependency updates - Go",
     "name": "dep/go"
-  },
-  {
-    "color": "ffde57",
-    "description": "Dependency updates - Nodejs",
-    "name": "dep/nodejs"
-  },
-  {
-    "color": "ffde57",
-    "description": "Dependency updates - Python",
-    "name": "dep/python"
-  },
-  {
-    "color": "ffde57",
-    "description": "Dependency updates - Rust",
-    "name": "dep/rust"
-  },
-  {
-    "color": "0db7ed",
-    "description": "Dependency updates - Docker",
-    "name": "dep/docker"
-  },
-  {
-    "color": "ceef86",
-    "description": "Dependency updates - Submodules",
-    "name": "dep/submodule"
-  },
-  {
-    "color": "0db7ed",
-    "description": "Dependency updates - Docker",
-    "name": "dep/docker-pkgs"
-  },
-  {
-    "color": "0db7ed",
-    "description": "Dependency updates - Terraform",
-    "name": "dep/terraform"
   },
   {
     "color": "025e8c",
@@ -221,11 +186,6 @@
   },
   {
     "color": "025e8c",
-    "description": "Action by dependabot",
-    "name": "dependabot"
-  },
-  {
-    "color": "025e8c",
     "description": "Enable automatic merge via bot - Luna",
     "name": "luna/automerge"
   },
@@ -233,6 +193,11 @@
     "color": "025E8C",
     "description": "Enable Auto update PR via Luna",
     "name": "luna/autoupdate"
+  },
+  {
+    "color": "025e8c",
+    "description": "Action by dependabot",
+    "name": "dependabot"
   },
   {
     "color": "1fd021",

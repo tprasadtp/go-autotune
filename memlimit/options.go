@@ -41,11 +41,11 @@ func WithMaxReservePercent(percent uint64) Option {
 	}
 }
 
-// WithMemLimitFunc can be used to replace default memory limit detection algorithm.
+// WithMemoryQuotaFunc can be used to replace default memory limit detection algorithm.
 //
-// This is advanced option intended to be used to support exotic configurations.
-// Do not use this unless you are familiar with internals of this package.
-func WithMemLimitFunc(fn func() (max uint64, high uint64, err error)) Option {
+// This is an advanced option intended to be used to support exotic configurations.
+// Do not use this unless you are familiar with the internals of this package.
+func WithMemoryQuotaFunc(fn func() (max int64, high int64, err error)) Option {
 	if fn != nil {
 		return &optionFunc{
 			fn: func(c *config) {

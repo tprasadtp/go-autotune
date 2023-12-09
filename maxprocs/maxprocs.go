@@ -5,6 +5,7 @@ package maxprocs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -30,9 +31,14 @@ func Current() int {
 // Configure configures GOMAXPROCS.
 //
 //   - If env variable GOMAXPROCS is set and is valid positive integer, it is always used.
-//   - If platform is Linux and cgroups v2 is available, CPU quota from current PID is
+//   - If running on Linux and cgroups v2 is available, CPU quota from current PID is
 //     determined automatically and used to determine GOMAXPROCS.
 //   - On non linux platforms only GOMAXPROCS env variable is considered.
+//   - Fractional CPUs quotas are rounded off with [math.Ceil] by default,
+//     unless overridden with [WithRoundFunc].
+//   - If CPU quota is less than 1, GOMAXPROCS is set to 1.
+//   - This function by default logs nothing. Custom logger can be specified via
+//     [WithLogger].
 func Configure(opts ...Option) {
 	cfg := &config{}
 	ctx := context.Background()
@@ -49,7 +55,7 @@ func Configure(opts ...Option) {
 		cfg.Logger = slog.New(discard.NewDiscardHandler())
 	}
 
-	// If CPUQuotaFunc is not specified use default based on CGroupV2.
+	// If CPUQuotaFunc is not specified, use default based on CGroupV2.
 	if cfg.CPUQuotaFunc == nil {
 		cfg.CPUQuotaFunc = func() (float64, error) {
 			info, err := cgroup.GetInfo("", "")
@@ -60,7 +66,7 @@ func Configure(opts ...Option) {
 		}
 	}
 
-	// If rounding function is not specified use math.ceil
+	// If rounding function is not specified, use math.ceil
 	if cfg.RoundFunc == nil {
 		cfg.RoundFunc = func(f float64) uint64 {
 			if f < 0 {
@@ -70,7 +76,7 @@ func Configure(opts ...Option) {
 		}
 	}
 
-	snapshot := runtime.GOMAXPROCS(-1)
+	snapshot := Current()
 
 	// Check if GOMAXPROCS env variable is set.
 	goMaxProcsEnv := os.Getenv("GOMAXPROCS")
@@ -95,11 +101,17 @@ func Configure(opts ...Option) {
 		return
 	}
 
-	// Get CGroup Info.
+	// Get cgroup Info.
 	quota, err := cfg.CPUQuotaFunc()
 	if err != nil {
-		cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get CPU quota info",
-			slog.Any("err", err))
+		// Log if error is not [errors.ErrUnsupported].
+		//
+		// This ensures non linux platforms do not log anything.
+		if !errors.Is(err, errors.ErrUnsupported) {
+			cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get CPU quota info",
+				slog.Any("err", err))
+		}
+
 		return
 	}
 
@@ -108,6 +120,7 @@ func Configure(opts ...Option) {
 			slog.Float64("CPUQuota", quota),
 		)
 		// Round off fractional CPU using defined RoundFunc.
+		// Default is math.Ceil.
 		procs := cfg.RoundFunc(quota)
 
 		// GOMAXPROCS ensure at-least 1

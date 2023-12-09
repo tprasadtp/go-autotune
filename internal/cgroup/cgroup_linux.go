@@ -22,7 +22,7 @@ const (
 	defaultCgroupNamePath = "/proc/self/cgroup"
 )
 
-// Returns cgroup info for current process from given mountInfo file and cgroup file.
+// Returns cgroup info for the current process from given mountInfo file and cgroup file.
 func getInfo(mountInfo string, cgroup string) (*Info, error) {
 	mount, err := mountPointFromFile(mountInfo)
 	if err != nil {
@@ -115,7 +115,7 @@ func getCPUQuotaFromFile(path string) (float64, error) {
 	return -1, io.ErrUnexpectedEOF
 }
 
-func getMemLimitFromFile(path string) (uint64, error) {
+func getMemLimitFromFile(path string) (int64, error) {
 	file, err := os.Open(path)
 	base := filepath.Base(path)
 	if err != nil {
@@ -137,8 +137,8 @@ func getMemLimitFromFile(path string) (uint64, error) {
 		}
 
 		// Get Value
-		max, err := strconv.ParseUint(fields[0], 10, 64)
-		if err != nil {
+		max, err := strconv.ParseInt(fields[0], 10, 64)
+		if err != nil || max < 0 {
 			return 0, fmt.Errorf("invalid format %s: %w", base, err)
 		}
 

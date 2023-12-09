@@ -225,15 +225,9 @@ linters-settings:
       - p: "fmt.Print(f|ln)?(.*)"
         msg: "Do not commit print statements."
 
-      - p: "fmt.Fprint(f|ln)?\\(os.Std(out|err)(.*)"
-        msg: "Do not commit print statements."
-
-      # [Disabled] Too many false positives for tests.
-      # - p: time.Sleep
-      #   msg: "Avoid using time.Sleep in you code."
-
-      - p: 'log.KV\(log\.ErrorKey\s+,.*'
-        msg: "Use log.E(error) instead"
+      # Too many false positives for tests.
+      - p: time.Sleep
+        msg: "Avoid using time.Sleep in your code."
 
     # Exclude godoc examples from forbidigo checks.
     # Default: true

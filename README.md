@@ -7,7 +7,7 @@
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/tprasadtp/go-autotune?color=7f50a6&label=release&logo=semver&sort=semver)](https://github.com/tprasadtp/go-autotune/releases)
 
 Automatically configure [`GOMAXPROCS`][GOMAXPROCS] and [`GOMEMLIMIT`][GOMEMLIMIT] for your
-applications to match to match Container/Cgroup CPU quota and memory limits.
+applications to match Container/Cgroup CPU quota and memory limits.
 
 ## Usage
 
@@ -17,23 +17,21 @@ See [API docs](https://pkg.go.dev/github.com/tprasadtp/go-autotune) for more inf
 package main
 
 import (
-	_ "github.com/tprasadtp/go-autotune" // Importing this adjusts GOMAXPROCS and GOMEMLIMIT
+	_ "github.com/tprasadtp/go-autotune" // Automatically adjusts GOMAXPROCS & GOMEMLIMIT
 )
 ```
 
 ## Testing
 
-Testing requires Linux system with cgroups v2 support enabled.
+Testing requires a Linux system with cgroups v2 support enabled and systemd 259 or later.
 
 ```
 go test -cover ./...
 ```
 
-## Linux Version
+## CGROUP Version
 
-Minimum required linux version is 5.8 or later, as this module only supports Cgroups V2.
-Also Cgroupv2 **MUST** be enabled. Following Linux distributions enable Cgroups v2 support
-by default.
+This module only supports Cgroups V2. Following Linux distributions enable it by default.
 
 - Container Optimized OS (since M97)
 - Ubuntu (since 21.10)
@@ -52,7 +50,7 @@ by default.
 ## Disabling Automatic Configuration
 
 To disable automatic configuration at runtime(for compiled binaries),
-Set `GO_AUTOTUNE` environment variable to `false`.
+Set `GO_AUTOTUNE` environment variable to `false` or `0`.
 
 ## Incompatible Modules
 
@@ -66,13 +64,13 @@ linters-settings:
   gomodguard:
     blocked:
       - go.uber.org/automaxprocs:
-          reason: "Does not handle fractional CPUs well and does not configure GOMEMLIMIT."
+          reason: "Under-utilizes fractional CPUs."
           recommendations:
             - "github.com/tprasadtp/go-autotune"
-        - github.com/KimMachineGun/automemlimit:
-            reason: "Does not support cgroups mounted at non standard location and does not configure GOMAXPROCS."
-            recommendations:
-              - "github.com/tprasadtp/go-autotune"
+      - github.com/KimMachineGun/automemlimit:
+          reason: "Only considers memory.max and does not support cgroup mounted at non default path"
+          recommendations:
+            - "github.com/tprasadtp/go-autotune"
 linters:
   enabled:
     # <snip other enabled linters>
