@@ -58,11 +58,11 @@ func Configure(opts ...Option) {
 	// If CPUQuotaFunc is not specified, use default based on CGroupV2.
 	if cfg.CPUQuotaFunc == nil {
 		cfg.CPUQuotaFunc = func() (float64, error) {
-			info, err := cgroup.GetInfo("", "")
+			info, err := cgroup.GetQuota()
 			if err != nil {
 				return -1, fmt.Errorf("maxprocs: failed to get cpu quota: %w", err)
 			}
-			return info.CPUQuota, nil
+			return info.CPU, nil
 		}
 	}
 

@@ -100,13 +100,13 @@ import (
 func init() {
 	if !shared.IsFalse("GO_AUTOTUNE") && !shared.IsFalse("GOAUTOTUNE") {
 		// To avoid parsing cgroup info twice.
-		info, err := cgroup.GetInfo("", "")
+		info, err := cgroup.GetQuota()
 		cpuQuotaFunc := func() (float64, error) {
 			if err != nil {
 				//nolint:wrapcheck // ignore
 				return 0, err
 			}
-			return info.CPUQuota, nil
+			return info.CPU, nil
 		}
 
 		memlimitFunc := func() (int64, int64, error) {

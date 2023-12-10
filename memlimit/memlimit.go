@@ -53,7 +53,7 @@ func Configure(opts ...Option) {
 	if cfg.MemLimitFunc == nil {
 		//nolint:nonamedreturns // for docs.
 		cfg.MemLimitFunc = func() (max int64, high int64, err error) {
-			info, err := cgroup.GetInfo("", "")
+			info, err := cgroup.GetQuota()
 			if err != nil {
 				return 0, 0, fmt.Errorf("memlimit: failed to get memory limits: %w", err)
 			}

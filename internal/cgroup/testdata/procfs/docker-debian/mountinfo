@@ -1,0 +1,28 @@
+1281 1228 0:91 / / rw,relatime - overlay overlay rw,lowerdir=/home/prasad/.local/share/docker/overlay2/l/5FHXEIP33KGHWDANSGLC4N2JGR:/home/prasad/.local/share/docker/overlay2/l/FFWI5GYUGDLRIZPSSFFW7OPU44,upperdir=/home/prasad/.local/share/docker/overlay2/032ad6c5d7d463d1c102f5acd2cf7c3c6c4869c24035e797b0e95e66c2ce1b0d/diff,workdir=/home/prasad/.local/share/docker/overlay2/032ad6c5d7d463d1c102f5acd2cf7c3c6c4869c24035e797b0e95e66c2ce1b0d/work,redirect_dir=nofollow,userxattr
+1282 1281 0:94 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw
+1283 1281 0:95 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,uid=1000,gid=1000,inode64
+1284 1283 0:96 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=100004,mode=620,ptmxmode=666
+1285 1281 0:97 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs ro
+1286 1285 0:28 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot
+1287 1283 0:93 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw
+1288 1283 0:98 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=65536k,uid=1000,gid=1000,inode64
+1293 1283 0:5 /null /dev/null rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1294 1283 0:5 /random /dev/random rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1295 1283 0:5 /full /dev/full rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1296 1283 0:5 /tty /dev/tty rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1297 1283 0:5 /zero /dev/zero rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1298 1283 0:5 /urandom /dev/urandom rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1229 1283 0:96 /0 /dev/console rw,nosuid,noexec,relatime - devpts devpts rw,gid=100004,mode=620,ptmxmode=666
+1230 1282 0:94 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw
+1231 1282 0:94 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw
+1232 1282 0:94 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw
+1233 1282 0:94 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw
+1234 1282 0:94 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw
+1235 1282 0:99 / /proc/asound ro,relatime - tmpfs tmpfs ro,uid=1000,gid=1000,inode64
+1236 1282 0:100 / /proc/acpi ro,relatime - tmpfs tmpfs ro,uid=1000,gid=1000,inode64
+1237 1282 0:5 /null /proc/kcore rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1238 1282 0:5 /null /proc/keys rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1239 1282 0:5 /null /proc/timer_list rw,nosuid,relatime master:2 - devtmpfs udev rw,size=3965676k,nr_inodes=991419,mode=755,inode64
+1240 1282 0:101 / /proc/scsi ro,relatime - tmpfs tmpfs ro,uid=1000,gid=1000,inode64
+1241 1285 0:102 / /sys/firmware ro,relatime - tmpfs tmpfs ro,uid=1000,gid=1000,inode64
+1242 1285 0:103 / /sys/devices/virtual/powercap ro,relatime - tmpfs tmpfs ro,uid=1000,gid=1000,inode64
