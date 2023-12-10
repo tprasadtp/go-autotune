@@ -39,13 +39,9 @@ This module only supports Cgroups V2. Following Linux distributions enable it by
 - Fedora (since 31)
 - Arch Linux (since April 2021)
 - RHEL and RHEL-like distributions (since 9)
-
-## Container Runtime
-
 - Kubernetes 1.25 or later
 - containerd v1.4 or later
 - cri-o v1.20 or later
-- ECS agent [1.61.0](https://github.com/aws/amazon-ecs-agent/pull/3127) or later
 
 ## Disabling Automatic Configuration
 
