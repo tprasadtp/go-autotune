@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
 func TestGetInterfacePath(t *testing.T) {
@@ -136,6 +138,113 @@ func TestGetQuota(t *testing.T) {
 			expect: &Quota{
 				CPU: 0.5,
 			},
+		},
+		{
+			name: "cpu-250",
+			path: "cpu-250",
+			expect: &Quota{
+				CPU: 2.5,
+			},
+		},
+		{
+			name: "cpu-250-10ms",
+			path: "cpu-250-10ms",
+			expect: &Quota{
+				CPU: 2.5,
+			},
+		},
+		{
+			name: "cpu-300",
+			path: "cpu-300",
+			expect: &Quota{
+				CPU: 3,
+			},
+		},
+		{
+			name: "mem-high-250",
+			path: "mem-high-250",
+			expect: &Quota{
+				MemoryHigh: shared.MustParseSize("250MiB"),
+			},
+		},
+		{
+			name: "mem-max-250",
+			path: "mem-max-250",
+			expect: &Quota{
+				MemoryMax: shared.MustParseSize("250MiB"),
+			},
+		},
+		{
+			name: "mem-max-250-high-200",
+			path: "mem-max-250-high-200",
+			expect: &Quota{
+				MemoryMax:  shared.MustParseSize("250MiB"),
+				MemoryHigh: shared.MustParseSize("200MiB"),
+			},
+		},
+		{
+			name: "mem-max-250-high-250",
+			path: "mem-max-250-high-250",
+			expect: &Quota{
+				MemoryMax:  shared.MustParseSize("250MiB"),
+				MemoryHigh: shared.MustParseSize("250MiB"),
+			},
+		},
+		{
+			name: "mem-max-300-high-500",
+			path: "mem-max-300-high-500",
+			expect: &Quota{
+				MemoryMax:  shared.MustParseSize("300MiB"),
+				MemoryHigh: shared.MustParseSize("500MiB"),
+			},
+		},
+		{
+			name: "cpu-250-10ms-mem-max-300-high-250",
+			path: "cpu-250-10ms-mem-max-300-high-250",
+			expect: &Quota{
+				CPU:        2.5,
+				MemoryMax:  shared.MustParseSize("300MiB"),
+				MemoryHigh: shared.MustParseSize("250MiB"),
+			},
+		},
+		{
+			name: "cpu-invalid",
+			path: "cpu-invalid",
+			err:  true,
+		},
+		{
+			name: "cpu-negative",
+			path: "cpu-negative",
+			err:  true,
+		},
+		{
+			name: "cpu-negative-interval",
+			path: "cpu-negative-interval",
+			err:  true,
+		},
+		{
+			name: "mem-high-invalid",
+			path: "mem-high-invalid",
+			err:  true,
+		},
+		{
+			name: "mem-high-negative",
+			path: "mem-high-negative",
+			err:  true,
+		},
+		{
+			name: "mem-max-invalid",
+			path: "mem-max-invalid",
+			err:  true,
+		},
+		{
+			name: "mem-max-negative",
+			path: "mem-max-negative",
+			err:  true,
+		},
+		{
+			name:   "no-limits-no-files",
+			expect: &Quota{},
 		},
 	}
 	for _, tc := range tt {

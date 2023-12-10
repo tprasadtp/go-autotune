@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-func TestSize(t *testing.T) {
+func TestParseFileSize(t *testing.T) {
 	type testCase struct {
 		name    string
 		input   string
-		expect  uint64
+		expect  int64
 		invalid bool
 	}
 	tt := []testCase{
@@ -46,9 +46,44 @@ func TestSize(t *testing.T) {
 			invalid: true,
 		},
 		{
+			name:    "negative",
+			input:   "-2.5MB",
+			invalid: true,
+		},
+		{
 			name:   "bytes(100mb)",
 			input:  "100000000",
 			expect: 1e8,
+		},
+		{
+			name:   "100kb",
+			input:  "100kb",
+			expect: 100e3,
+		},
+		{
+			name:   "100KB",
+			input:  "100KB",
+			expect: 100e3,
+		},
+		{
+			name:   "99.99KB",
+			input:  "99.99KB",
+			expect: 99990,
+		},
+		{
+			name:   "9.99MB",
+			input:  "9.99MB",
+			expect: 9990000,
+		},
+		{
+			name:   "9.99GB",
+			input:  "9.99GB",
+			expect: 9.99e+9,
+		},
+		{
+			name:   "9.99TB",
+			input:  "9.99TB",
+			expect: 9.99e+12,
 		},
 		{
 			name:   "100KiB",
@@ -81,8 +116,8 @@ func TestSize(t *testing.T) {
 			expect: 10885165114983, // 1099511627776 * 9.9
 		},
 		{
-			name:   "0kib",
-			input:  "0kib",
+			name:   "0kb",
+			input:  "0kb",
 			expect: 0,
 		},
 		{
@@ -101,24 +136,14 @@ func TestSize(t *testing.T) {
 			expect: 0,
 		},
 		{
-			name:   "0mib",
-			input:  "0mib",
-			expect: 0,
-		},
-		{
-			name:   "0.0Gib",
-			input:  "0.0Gib",
-			expect: 0,
-		},
-		{
-			name:   "0.0Tib",
-			input:  "0.0Tib",
+			name:   "0mb",
+			input:  "0mb",
 			expect: 0,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			s, err := Size(tc.input)
+			s, err := ParseSize(tc.input)
 			if tc.invalid {
 				if s != 0 {
 					t.Errorf("expect value to be 0 when input is invalid (%q)", tc.input)

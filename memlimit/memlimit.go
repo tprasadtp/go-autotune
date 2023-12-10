@@ -64,7 +64,7 @@ func Configure(opts ...Option) {
 	// Check if GOMEMLIMIT env variable is set.
 	goMemLimitEnv := os.Getenv("GOMEMLIMIT")
 	if goMemLimitEnv != "" {
-		memLimitFromEnv, err := shared.Size(goMemLimitEnv)
+		memLimitFromEnv, err := shared.ParseSize(goMemLimitEnv)
 		if err == nil && memLimitFromEnv > 0 {
 			cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
 				"Setting GOMEMLIMIT from environment variable", slog.String("GOMEMLIMIT", goMemLimitEnv))

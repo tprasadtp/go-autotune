@@ -221,7 +221,7 @@ func getCPUQuotaFromFile(path string) (float64, error) {
 		// If file is missing then cpu controller is not enabled
 		// or cpu limits are not defined.
 		if errors.Is(err, os.ErrNotExist) {
-			return -1, nil
+			return 0, nil
 		}
 	}
 
@@ -229,7 +229,7 @@ func getCPUQuotaFromFile(path string) (float64, error) {
 	if scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) == 0 || len(fields) > 2 {
-			return -1, fmt.Errorf("invalid format cpu.max")
+			return 0, fmt.Errorf("invalid format cpu.max")
 		}
 
 		// No CPU limits.
@@ -240,7 +240,7 @@ func getCPUQuotaFromFile(path string) (float64, error) {
 		// Get Maximum CPU quota
 		max, err := strconv.ParseUint(fields[0], 10, 64)
 		if err != nil || max == 0 {
-			return -1, fmt.Errorf("invalid format cpu.max")
+			return 0, fmt.Errorf("invalid format cpu.max")
 		}
 
 		// Check if period is defined.

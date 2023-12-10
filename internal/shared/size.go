@@ -11,6 +11,14 @@ import (
 	"unicode"
 )
 
+// Constant for bytes.
+const (
+	kByte = 1000
+	mByte = kByte * 1000
+	gByte = mByte * 1000
+	tByte = gByte * 1000
+)
+
 // Constants for IEC size.
 const (
 	_ = 1 << (iota * 10)
@@ -20,9 +28,16 @@ const (
 	tiByte
 )
 
-// Size parses given human readable string to bytes.
-// This accepts ~string or ~[]byte to allow directly using [json.Number].
-func Size(s string) (uint64, error) {
+func MustParseSize(s string) int64 {
+	v, err := ParseSize(s)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// ParseSize parses given human readable string to bytes.
+func ParseSize(s string) (int64, error) {
 	// As special case if file size empty return zero value.
 	if s == "" {
 		return 0, nil
@@ -39,7 +54,7 @@ func Size(s string) (uint64, error) {
 
 	// Try to parse s[0:i] as floating point value.
 	f, err := strconv.ParseFloat(s[:i], 64)
-	if err != nil {
+	if err != nil || f < 0 {
 		return 0, fmt.Errorf("invalid size: %w", err)
 	}
 
@@ -50,6 +65,14 @@ func Size(s string) (uint64, error) {
 	switch unit {
 	case "", "b":
 		// already in bytes
+	case "k", "kb", "kilobyte", "kilobytes":
+		multiplier = kByte
+	case "m", "mb", "megabyte", "megabytes":
+		multiplier = mByte
+	case "g", "gb", "gigabyte", "gigabytes":
+		multiplier = gByte
+	case "t", "tb", "terabyte", "terabytes":
+		multiplier = tByte
 	case "kib":
 		multiplier = kiByte
 	case "mib":
@@ -62,5 +85,5 @@ func Size(s string) (uint64, error) {
 		return 0, fmt.Errorf("invalid size unit: %q", unit)
 	}
 
-	return uint64(math.Ceil(f * multiplier)), nil
+	return int64(math.Ceil(f * multiplier)), nil
 }
