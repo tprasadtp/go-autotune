@@ -91,8 +91,18 @@ func TestParseFileSize(t *testing.T) {
 			expect: 100 * kiByte,
 		},
 		{
+			name:   "100Ki",
+			input:  "100Ki",
+			expect: 100 * kiByte,
+		},
+		{
 			name:   "1.0MiB",
 			input:  "1.0MiB",
+			expect: 1048576,
+		},
+		{
+			name:   "1.0Mi",
+			input:  "1.0Mi",
 			expect: 1048576,
 		},
 		{
@@ -101,8 +111,18 @@ func TestParseFileSize(t *testing.T) {
 			expect: 10380903,
 		},
 		{
+			name:   "9.9Mi",
+			input:  "9.9Mi",
+			expect: 10380903,
+		},
+		{
 			name:   "1.0GiB",
 			input:  "1.0GiB",
+			expect: 1073741824,
+		},
+		{
+			name:   "1.0Gi",
+			input:  "1.0Gi",
 			expect: 1073741824,
 		},
 		{
@@ -111,13 +131,43 @@ func TestParseFileSize(t *testing.T) {
 			expect: 10630044058, // 1073741824 * 9.9
 		},
 		{
+			name:   "9.9Gi",
+			input:  "9.9Gi",
+			expect: 10630044058, // 1073741824 * 9.9
+		},
+		{
 			name:   "9.9TiB",
 			input:  "9.9TiB",
 			expect: 10885165114983, // 1099511627776 * 9.9
 		},
 		{
+			name:   "9.9Ti",
+			input:  "9.9Ti",
+			expect: 10885165114983, // 1099511627776 * 9.9
+		},
+		{
 			name:   "0kb",
 			input:  "0kb",
+			expect: 0,
+		},
+		{
+			name:   "0Ki",
+			input:  "0Ki",
+			expect: 0,
+		},
+		{
+			name:   "0Mi",
+			input:  "0Mi",
+			expect: 0,
+		},
+		{
+			name:   "0Gi",
+			input:  "0Gi",
+			expect: 0,
+		},
+		{
+			name:   "0Ti",
+			input:  "0Ti",
 			expect: 0,
 		},
 		{

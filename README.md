@@ -25,9 +25,17 @@ import (
 
 Testing requires a Linux system with cgroups v2 support enabled and systemd 259 or later.
 
-```
-go test -cover ./...
-```
+- Create `.gocover` directory to gather coverage data
+
+    ```bash
+    mkdir .gocover
+    ```
+
+- Run Tests
+
+    ```console
+    go test -cover --test.gocoverdir .gocover ./...
+    ```
 
 ## CGROUP Version
 
@@ -59,6 +67,7 @@ linters-settings:
   # <snip other linter settings>
   gomodguard:
     blocked:
+      # <snip other module settings>
       - go.uber.org/automaxprocs:
           reason: "Under-utilizes fractional CPUs."
           recommendations:
@@ -70,7 +79,7 @@ linters-settings:
 linters:
   enabled:
     # <snip other enabled linters>
-    - gomodguard # allow and block lists linter for direct Go module dependencies.
+    - gomodguard
 ```
 
 [GOMEMLIMIT]: https://pkg.go.dev/runtime/debug#SetMemoryLimit

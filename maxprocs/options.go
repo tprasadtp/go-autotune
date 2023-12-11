@@ -37,7 +37,7 @@ func WithLogger(logger *slog.Logger) Option {
 // or significantly throttled CPU.
 //
 // Unless you are sure of your requirements, do not use this.
-func WithRoundFunc(fn func(float64) uint64) Option {
+func WithRoundFunc(fn func(float64) int) Option {
 	if fn != nil {
 		return &optionFunc{
 			fn: func(c *config) {

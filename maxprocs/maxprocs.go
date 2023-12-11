@@ -19,7 +19,7 @@ import (
 
 type config struct {
 	Logger       *slog.Logger
-	RoundFunc    func(float64) uint64
+	RoundFunc    func(float64) int
 	CPUQuotaFunc func() (float64, error)
 }
 
@@ -68,11 +68,11 @@ func Configure(opts ...Option) {
 
 	// If rounding function is not specified, use math.ceil
 	if cfg.RoundFunc == nil {
-		cfg.RoundFunc = func(f float64) uint64 {
+		cfg.RoundFunc = func(f float64) int {
 			if f < 0 {
 				return 0
 			}
-			return uint64(math.Ceil(f))
+			return int(math.Ceil(f))
 		}
 	}
 
@@ -128,14 +128,14 @@ func Configure(opts ...Option) {
 			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Selecting minimum possible GOMAXPROCS value")
 			procs = 1
 		}
-		if snapshot != int(procs) {
+		if snapshot != procs {
 			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Setting GOMAXPROCS",
-				slog.String("GOMAXPROCS", strconv.FormatUint(procs, 10)),
+				slog.String("GOMAXPROCS", strconv.FormatInt(int64(procs), 10)),
 			)
-			runtime.GOMAXPROCS(int(procs))
+			runtime.GOMAXPROCS(procs)
 		} else {
 			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "GOMAXPROCS is already set",
-				slog.String("GOMAXPROCS", strconv.FormatUint(procs, 10)),
+				slog.String("GOMAXPROCS", strconv.FormatInt(int64(procs), 10)),
 			)
 		}
 	} else {

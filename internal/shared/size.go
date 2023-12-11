@@ -73,13 +73,13 @@ func ParseSize(s string) (int64, error) {
 		multiplier = gByte
 	case "t", "tb", "terabyte", "terabytes":
 		multiplier = tByte
-	case "kib":
+	case "kib", "ki":
 		multiplier = kiByte
-	case "mib":
+	case "mib", "mi":
 		multiplier = miByte
-	case "gib":
+	case "gib", "gi":
 		multiplier = giByte
-	case "tib":
+	case "tib", "ti":
 		multiplier = tiByte
 	default:
 		return 0, fmt.Errorf("invalid size unit: %q", unit)

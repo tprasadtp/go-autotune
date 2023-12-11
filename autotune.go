@@ -77,7 +77,7 @@
 // # Disable at Runtime
 //
 // To disable automatic configuration at runtime(for compiled binaries),
-// Set `GO_AUTOTUNE` environment variable to `false`.
+// Set `GO_AUTOTUNE` environment variable to `false` or `0`.
 //
 // [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
 // [Vertical Pod autoscaling]: https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
