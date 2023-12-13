@@ -13,14 +13,22 @@ linters-settings:
   cyclop:
     # The maximal code complexity to report.
     # Default: 10
-    max-complexity: 35
+    max-complexity: 50
     # The maximal average package complexity.
     # If it's higher than 0.0 (float) the check is enabled
     # Default: 0.0
     package-average: 0
 
+  # Check declaration order and count of types, constants, variables and functions.
+  decorder:
+    # If true, `init` func can be anywhere in file
+    # (does not have to be declared before all other functions).
+    # Default: true (disabled)
+    disable-init-func-first-check: false
+
+
   gocyclo:
-    min-complexity: 35
+    min-complexity: 50
 
   dupl:
     threshold: 200
@@ -68,7 +76,7 @@ linters-settings:
 
   gocognit:
     # Minimal code complexity to report
-    min-complexity: 30
+    min-complexity: 50
 
   goconst:
     match-constant: true
@@ -147,14 +155,28 @@ linters-settings:
               - "log/slog"
               - "github.com/tprasadtp/log"
 
+        # Use github.com/tprasadtp/go-autotune
         - go.uber.org/automaxprocs:
-            reason: "Does not handle fractional CPUs well and does not configure GOMEMLIMIT."
+            reason: "Does not handle fractional CPUs well and does not support Windows."
             recommendations:
               - "github.com/tprasadtp/go-autotune"
         - github.com/KimMachineGun/automemlimit:
-            reason: "Does not support cgroups mounted at non standard location and does not configure GOMAXPROCS."
+            reason: |
+              Does not support cgroups mounted at non standard location,
+              does not support memory.high and does not support Windows.
             recommendations:
               - "github.com/tprasadtp/go-autotune"
+
+        # Use github.com/tprasadtp/go-githubapp
+        - github.com/bradleyfalzon/ghinstallation:
+            reason: "Does not support KMS backed keys or keys implementing crypto.Signer interface."
+            recommendations:
+              - "github.com/tprasadtp/go-githubapp"
+
+        - github.com/bradleyfalzon/ghinstallation/v2:
+            reason: "Does not support KMS backed keys or keys implementing crypto.Signer interface."
+            recommendations:
+              - "github.com/tprasadtp/go-githubapp"
 
         # Hashicorp has changed their license to BUSL for most products.
         # Libraries may not be under BUSL, but they directly or indirectly
@@ -293,9 +315,28 @@ linters-settings:
     require-specific: true
 
   sloglint:
+    # Enforce using key-value pairs only (incompatible with attr-only).
+    # Default: false
+    kv-only: false
     # Enforce using attributes only (incompatible with kv-only).
     # Default: false
-    attr-only: false
+    attr-only: true
+    # Enforce using methods that accept a context.
+    # Default: false
+    context-only: false
+    # Enforce using static values for log messages.
+    # Default: false
+    static-msg: true
+    # Enforce using constants instead of raw keys.
+    # Default: false
+    no-raw-keys: true
+    # Enforce a single key naming convention.
+    # Values: snake, kebab, camel, pascal
+    # Default: ""
+    key-naming-case: snake
+    # Enforce putting arguments on separate lines.
+    # Default: false
+    args-on-sep-lines: false
 
   tenv:
     # The option `all` will run against whole test files
@@ -342,6 +383,7 @@ linters:
     - bodyclose # checks whether HTTP response body is closed successfully
     - cyclop # checks function and package cyclomatic complexity
     - dupl # tool for code clone detection
+    - decorder # check declaration order and count of types, constants, variables and functions.
     - durationcheck # checks for two durations multiplied together
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
@@ -361,6 +403,7 @@ linters:
     - gomodguard # allow and block lists linter for direct Go module dependencies.
     - goprintffuncname # checks that printf-like functions are named with f at the end
     - gosec # inspects source code for security problems
+    - inamedparam # linter that reports interfaces with unnamed method parameters.
     - makezero # finds slice declarations with non-zero initial length
     - nakedret # finds naked returns in functions greater than a specified function length
     - nestif # reports deeply nested if statements
@@ -385,7 +428,6 @@ linters:
     - usestdlibvars # detects the possibility to use variables/constants from the Go standard library
     - wastedassign # finds wasted assignment statements
     - whitespace # detects leading and trailing whitespace
-    - decorder # checks declaration order and count of types, constants, variables and functions
     - prealloc #  finds slice declarations that could potentially be preallocated
     - interfacebloat # checks the number of methods inside an interface
     - wrapcheck # checks that errors returned from external packages are wrapped

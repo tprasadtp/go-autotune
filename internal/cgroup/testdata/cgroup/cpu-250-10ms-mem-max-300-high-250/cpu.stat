@@ -1,9 +1,0 @@
-usage_usec 52098
-user_usec 9400
-system_usec 42697
-core_sched.force_idle_usec 0
-nr_periods 8
-nr_throttled 0
-throttled_usec 0
-nr_bursts 0
-burst_usec 0

@@ -88,12 +88,12 @@ func TestParseFileSize(t *testing.T) {
 		{
 			name:   "100KiB",
 			input:  "100KiB",
-			expect: 100 * kiByte,
+			expect: 100 * KiByte,
 		},
 		{
 			name:   "100Ki",
 			input:  "100Ki",
-			expect: 100 * kiByte,
+			expect: 100 * KiByte,
 		},
 		{
 			name:   "1.0MiB",

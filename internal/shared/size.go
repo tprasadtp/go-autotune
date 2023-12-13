@@ -13,28 +13,20 @@ import (
 
 // Constant for bytes.
 const (
-	kByte = 1000
-	mByte = kByte * 1000
-	gByte = mByte * 1000
-	tByte = gByte * 1000
+	KByte = 1000
+	MByte = KByte * 1000
+	GByte = MByte * 1000
+	TByte = GByte * 1000
 )
 
 // Constants for IEC size.
 const (
 	_ = 1 << (iota * 10)
-	kiByte
-	miByte
-	giByte
-	tiByte
+	KiByte
+	MiByte
+	GiByte
+	TiByte
 )
-
-func MustParseSize(s string) int64 {
-	v, err := ParseSize(s)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
 
 // ParseSize parses given human readable string to bytes.
 func ParseSize(s string) (int64, error) {
@@ -66,21 +58,21 @@ func ParseSize(s string) (int64, error) {
 	case "", "b":
 		// already in bytes
 	case "k", "kb", "kilobyte", "kilobytes":
-		multiplier = kByte
+		multiplier = KByte
 	case "m", "mb", "megabyte", "megabytes":
-		multiplier = mByte
+		multiplier = MByte
 	case "g", "gb", "gigabyte", "gigabytes":
-		multiplier = gByte
+		multiplier = GByte
 	case "t", "tb", "terabyte", "terabytes":
-		multiplier = tByte
+		multiplier = TByte
 	case "kib", "ki":
-		multiplier = kiByte
+		multiplier = KiByte
 	case "mib", "mi":
-		multiplier = miByte
+		multiplier = MiByte
 	case "gib", "gi":
-		multiplier = giByte
+		multiplier = GiByte
 	case "tib", "ti":
-		multiplier = tiByte
+		multiplier = TiByte
 	default:
 		return 0, fmt.Errorf("invalid size unit: %q", unit)
 	}

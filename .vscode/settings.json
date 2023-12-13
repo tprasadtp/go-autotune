@@ -8,5 +8,6 @@
   "go.formatTool": "gofumpt",
   // Enable go vulnerability checks.
   "go.diagnostic.vulncheck": "Imports",
+  // Default test timeouts.
   "go.testTimeout": "60s",
 }

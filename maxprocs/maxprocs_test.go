@@ -4,23 +4,16 @@
 package maxprocs_test
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
-	"os"
 	"runtime"
 	"strconv"
-	"syscall"
 	"testing"
 
 	"github.com/tprasadtp/go-autotune/maxprocs"
 )
-
-func logger() *slog.Logger {
-	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
-}
 
 func reset() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -71,7 +64,7 @@ func TestConfigure_EnvVariable(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("GOMAXPROCS", tc.env)
-			maxprocs.Configure(maxprocs.WithLogger(logger()))
+			maxprocs.Configure(maxprocs.WithLogger(slog.Default()))
 			c := maxprocs.Current()
 			if tc.expect != c {
 				t.Errorf("GOMAXPROCS expected=%d, got=%d", tc.expect, c)
@@ -84,9 +77,9 @@ func TestConfigure_WithCPUQuotaFunc(t *testing.T) {
 	t.Run("Unsupported", func(t *testing.T) {
 		reset()
 		maxprocs.Configure(
-			maxprocs.WithLogger(logger()),
+			maxprocs.WithLogger(slog.Default()),
 			maxprocs.WithCPUQuotaFunc(func() (float64, error) {
-				return 0, fmt.Errorf("test: %w", syscall.ENOSYS)
+				return 0, fmt.Errorf("test: %w", errors.ErrUnsupported)
 			}),
 		)
 		expected := runtime.NumCPU()
@@ -98,7 +91,7 @@ func TestConfigure_WithCPUQuotaFunc(t *testing.T) {
 	t.Run("ErrorDetectingCPUQuota", func(t *testing.T) {
 		reset()
 		maxprocs.Configure(
-			maxprocs.WithLogger(logger()),
+			maxprocs.WithLogger(slog.Default()),
 			maxprocs.WithCPUQuotaFunc(func() (float64, error) {
 				return 0, fmt.Errorf("test: unknown error")
 			}),
@@ -112,7 +105,7 @@ func TestConfigure_WithCPUQuotaFunc(t *testing.T) {
 	t.Run("FixedValue", func(t *testing.T) {
 		reset()
 		maxprocs.Configure(
-			maxprocs.WithLogger(logger()),
+			maxprocs.WithLogger(slog.Default()),
 			maxprocs.WithCPUQuotaFunc(func() (float64, error) {
 				return 1, nil
 			}),
@@ -126,7 +119,7 @@ func TestConfigure_WithCPUQuotaFunc(t *testing.T) {
 	t.Run("WithRoundFunc-Floor", func(t *testing.T) {
 		reset()
 		maxprocs.Configure(
-			maxprocs.WithLogger(logger()),
+			maxprocs.WithLogger(slog.Default()),
 			maxprocs.WithRoundFunc(func(f float64) int {
 				return int(math.Floor(f))
 			}),
@@ -143,7 +136,7 @@ func TestConfigure_WithCPUQuotaFunc(t *testing.T) {
 	t.Run("AlreadySet", func(t *testing.T) {
 		reset()
 		maxprocs.Configure(
-			maxprocs.WithLogger(logger()),
+			maxprocs.WithLogger(slog.Default()),
 			maxprocs.WithCPUQuotaFunc(func() (float64, error) {
 				return float64(runtime.NumCPU()), nil
 			}),
@@ -158,7 +151,7 @@ func TestConfigure_WithCPUQuotaFunc(t *testing.T) {
 	t.Run("Undefined", func(t *testing.T) {
 		reset()
 		maxprocs.Configure(
-			maxprocs.WithLogger(logger()),
+			maxprocs.WithLogger(slog.Default()),
 			maxprocs.WithCPUQuotaFunc(func() (float64, error) {
 				return 0, nil
 			}),

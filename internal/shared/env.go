@@ -31,3 +31,13 @@ func IsFalse(env string) bool {
 		return false
 	}
 }
+
+// IsDebug checks if environment variable env is set to "debug".
+func IsDebug(env string) bool {
+	switch strings.TrimSpace(strings.ToLower(os.Getenv(env))) {
+	case "debug":
+		return true
+	default:
+		return false
+	}
+}

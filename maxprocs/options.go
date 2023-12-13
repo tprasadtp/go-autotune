@@ -7,7 +7,7 @@ import "log/slog"
 
 // Option to apply while setting GOMAXPROCS.
 type Option interface {
-	apply(*config)
+	apply(c *config)
 }
 
 type optionFunc struct {

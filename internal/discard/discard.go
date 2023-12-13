@@ -8,36 +8,36 @@ import (
 	"log/slog"
 )
 
-var _ slog.Handler = (*DiscardHandler)(nil)
+var _ slog.Handler = (*Handler)(nil)
 
 // Event is an alias for [log/slog.Record].
 type Event = slog.Record
 
-// DiscardHandler is a [log/slog.Handler] which discards all events,
+// Handler is a [log/slog.Handler] which discards all events,
 // attributes and groups written to it and is always disabled.
-type DiscardHandler struct{}
+type Handler struct{}
 
-// NewDiscardHandler returns a new [DiscardHandler].
-func NewDiscardHandler() DiscardHandler {
-	return DiscardHandler{}
+// NewHandler returns a new [Handler].
+func NewHandler() Handler {
+	return Handler{}
 }
 
 // Enabled always returns false.
-func (d DiscardHandler) Enabled(_ context.Context, _ slog.Level) bool {
+func (d Handler) Enabled(_ context.Context, _ slog.Level) bool {
 	return false
 }
 
 // Handle should never be called, as [DiscardHandler.Enabled] always returns false.
-func (d DiscardHandler) Handle(_ context.Context, _ Event) error {
+func (d Handler) Handle(_ context.Context, _ Event) error {
 	return nil
 }
 
 // WithAttrs always discards all attrs provided.
-func (d DiscardHandler) WithAttrs(_ []slog.Attr) slog.Handler {
+func (d Handler) WithAttrs(_ []slog.Attr) slog.Handler {
 	return d
 }
 
 // WithAttrs always discards the group provided.
-func (d DiscardHandler) WithGroup(_ string) slog.Handler {
+func (d Handler) WithGroup(_ string) slog.Handler {
 	return d
 }

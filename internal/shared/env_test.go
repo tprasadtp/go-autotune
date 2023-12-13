@@ -65,3 +65,33 @@ func TestIsFalse(t *testing.T) {
 		})
 	}
 }
+
+func TestIsDebug(t *testing.T) {
+	tt := []struct {
+		env    string
+		expect bool
+	}{
+		{"true", false},
+		{"yes", false},
+		{"false", false},
+		{"no", false},
+		{"disable", false},
+		{"off", false},
+		{"0", false},
+		{"true", false},
+		{"1", false},
+		{"debug", true},
+		{"DEBUG", true},
+		{" DEBUG ", true},
+		{"hey-this-sort-of-nonsense-can-only-be-written-by-a-software-developer", false},
+	}
+	for _, tc := range tt {
+		t.Run(fmt.Sprintf("env=%s", tc.env), func(t *testing.T) {
+			t.Setenv("GO_TEST_PKG_SHARED_ENV_FOO", tc.env)
+			v := shared.IsDebug("GO_TEST_PKG_SHARED_ENV_FOO")
+			if tc.expect != v {
+				t.Errorf("expected=%t, got=%t", tc.expect, v)
+			}
+		})
+	}
+}

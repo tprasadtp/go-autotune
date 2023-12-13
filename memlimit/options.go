@@ -7,7 +7,7 @@ import "log/slog"
 
 // Option to apply for setting gomaxprocs.
 type Option interface {
-	apply(*config)
+	apply(c *config)
 }
 
 type optionFunc struct {
@@ -33,10 +33,10 @@ func WithLogger(logger *slog.Logger) Option {
 // WithMaxReservePercent configures percentage of max memory
 // to reserve before setting GOMEMLIMIT. Invalid values are ignored.
 // Default is 10%.
-func WithMaxReservePercent(percent uint64) Option {
+func WithMaxReservePercent(percent uint8) Option {
 	return &optionFunc{
 		fn: func(c *config) {
-			c.ReservePercent = percent
+			c.MaxReservePercent = percent
 		},
 	}
 }
@@ -49,7 +49,7 @@ func WithMemoryQuotaFunc(fn func() (max int64, high int64, err error)) Option {
 	if fn != nil {
 		return &optionFunc{
 			fn: func(c *config) {
-				c.MemLimitFunc = fn
+				c.QuotaFunc = fn
 			},
 		}
 	}

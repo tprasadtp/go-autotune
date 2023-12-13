@@ -65,6 +65,11 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 	}
 
 	// Args specified by tests.
+	for _, item := range flags {
+		if strings.Contains(item, "GO_TEST_EXEC_TRAMPOLINE") {
+			t.Fatalf("GO_TEST_EXEC_TRAMPOLINE cannot be passed as flag to systemd-run")
+		}
+	}
 	args = append(args, flags...)
 
 	// Trampoline args.

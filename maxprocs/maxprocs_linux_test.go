@@ -6,6 +6,7 @@
 package maxprocs_test
 
 import (
+	"log/slog"
 	"math"
 	"runtime"
 	"testing"
@@ -14,14 +15,16 @@ import (
 	"github.com/tprasadtp/go-autotune/maxprocs"
 )
 
-func TestConfigure_SystemdRun(t *testing.T) {
+func TestConfigure_Linux(t *testing.T) {
+	// Do not use table driven tests,
+	// as test binary re-execs with systemd-run.
 	t.Run("NoLimits", func(t *testing.T) {
 		reset()
 		args := []string{
 			"--pipe",
 		}
 		shared.SystemdRun(t, args, func(t *testing.T) {
-			maxprocs.Configure(maxprocs.WithLogger(logger()))
+			maxprocs.Configure(maxprocs.WithLogger(slog.Default()))
 			v := maxprocs.Current()
 			expect := runtime.NumCPU()
 			if v != expect {
@@ -36,7 +39,7 @@ func TestConfigure_SystemdRun(t *testing.T) {
 			"--property=CPUQuota=50%",
 		}
 		shared.SystemdRun(t, args, func(t *testing.T) {
-			maxprocs.Configure(maxprocs.WithLogger(logger()))
+			maxprocs.Configure(maxprocs.WithLogger(slog.Default()))
 			v := maxprocs.Current()
 			if v != 1 {
 				t.Errorf("expected=1, got=%d", v)
@@ -47,14 +50,30 @@ func TestConfigure_SystemdRun(t *testing.T) {
 		reset()
 		args := []string{
 			"--pipe",
-			"--property=CPUQuota=250%",
+			"--property=CPUQuota=150%",
 		}
 		shared.SystemdRun(t, args, func(t *testing.T) {
 			maxprocs.Configure(
-				maxprocs.WithLogger(logger()),
+				maxprocs.WithLogger(slog.Default()),
 				maxprocs.WithRoundFunc(func(f float64) int {
 					return int(math.Floor(f))
 				}),
+			)
+			v := maxprocs.Current()
+			if v != 1 {
+				t.Errorf("expected=2, got=%d", v)
+			}
+		})
+	})
+	t.Run("RoundFuncDefault", func(t *testing.T) {
+		reset()
+		args := []string{
+			"--pipe",
+			"--property=CPUQuota=150%",
+		}
+		shared.SystemdRun(t, args, func(t *testing.T) {
+			maxprocs.Configure(
+				maxprocs.WithLogger(slog.Default()),
 			)
 			v := maxprocs.Current()
 			if v != 2 {
@@ -62,6 +81,7 @@ func TestConfigure_SystemdRun(t *testing.T) {
 			}
 		})
 	})
+
 	t.Run("Integer", func(t *testing.T) {
 		reset()
 		args := []string{
@@ -70,7 +90,7 @@ func TestConfigure_SystemdRun(t *testing.T) {
 		}
 		shared.SystemdRun(t, args, func(t *testing.T) {
 			maxprocs.Configure(
-				maxprocs.WithLogger(logger()),
+				maxprocs.WithLogger(slog.Default()),
 			)
 			v := maxprocs.Current()
 			if v != 1 {

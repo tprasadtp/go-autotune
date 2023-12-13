@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/tprasadtp/go-autotune/internal/cgroup"
 	"github.com/tprasadtp/go-autotune/internal/discard"
+	"github.com/tprasadtp/go-autotune/internal/platform"
 )
 
 type config struct {
@@ -52,17 +52,17 @@ func Configure(opts ...Option) {
 
 	// If logger is nil, use a discard logger.
 	if cfg.Logger == nil {
-		cfg.Logger = slog.New(discard.NewDiscardHandler())
+		cfg.Logger = slog.New(discard.NewHandler())
 	}
 
 	// If CPUQuotaFunc is not specified, use default based on CGroupV2.
 	if cfg.CPUQuotaFunc == nil {
 		cfg.CPUQuotaFunc = func() (float64, error) {
-			info, err := cgroup.GetQuota()
+			v, err := platform.GetCPUQuota()
 			if err != nil {
 				return -1, fmt.Errorf("maxprocs: failed to get cpu quota: %w", err)
 			}
-			return info.CPU, nil
+			return v, nil
 		}
 	}
 
@@ -79,24 +79,20 @@ func Configure(opts ...Option) {
 	snapshot := Current()
 
 	// Check if GOMAXPROCS env variable is set.
-	goMaxProcsEnv := os.Getenv("GOMAXPROCS")
-	if goMaxProcsEnv != "" {
-		maxProcsEnvParse, err := strconv.Atoi(goMaxProcsEnv)
-		if err == nil && maxProcsEnvParse > 0 {
-			if snapshot != maxProcsEnvParse {
+	env := os.Getenv("GOMAXPROCS")
+	if env != "" {
+		maxProcsEnv, err := strconv.Atoi(env)
+		if err == nil && maxProcsEnv > 0 {
+			if snapshot != maxProcsEnv {
 				cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
 					"Setting GOMAXPROCS from environment variable",
-					slog.String("GOMAXPROCS", goMaxProcsEnv))
-				runtime.GOMAXPROCS(maxProcsEnvParse)
-			} else {
-				cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "GOMAXPROCS is already set",
-					slog.String("GOMAXPROCS", goMaxProcsEnv),
-				)
+					slog.String("GOMAXPROCS", env))
+				runtime.GOMAXPROCS(maxProcsEnv)
 			}
 		} else {
 			cfg.Logger.LogAttrs(ctx, slog.LevelError,
 				"Ignoring invalid GOMAXPROCS environment variable",
-				slog.String("GOMAXPROCS", goMaxProcsEnv))
+				slog.String("GOMAXPROCS", env))
 		}
 		return
 	}
@@ -108,7 +104,7 @@ func Configure(opts ...Option) {
 		//
 		// This ensures non linux platforms do not log anything.
 		if !errors.Is(err, errors.ErrUnsupported) {
-			cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get CPU quota info",
+			cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get cpu quota",
 				slog.Any("err", err))
 		}
 
@@ -116,9 +112,10 @@ func Configure(opts ...Option) {
 	}
 
 	if quota > 0 {
-		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained CPU Quota",
-			slog.Float64("CPUQuota", quota),
+		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained cpu quota",
+			slog.Float64("cpu.quota", quota),
 		)
+
 		// Round off fractional CPU using defined RoundFunc.
 		// Default is math.Ceil.
 		procs := cfg.RoundFunc(quota)
@@ -139,6 +136,6 @@ func Configure(opts ...Option) {
 			)
 		}
 	} else {
-		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "CPUQuota is not defined/unlimited")
+		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "cpu quota is not defined")
 	}
 }

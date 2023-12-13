@@ -1,20 +1,23 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-//go:build !linux
+//go:build !linux && !windows
 
 package maxprocs_test
 
 import (
+	"log/slog"
+	"os"
 	"runtime"
 	"testing"
 
 	"github.com/tprasadtp/go-autotune/maxprocs"
 )
 
-func TestConfigure_NonLinux(t *testing.T) {
+func TestConfigure_UnsupportedPlatform(t *testing.T) {
 	reset()
-	maxprocs.Configure(maxprocs.WithLogger(logger()))
+	os.Unsetenv("GOMAXPROCS")
+	maxprocs.Configure(maxprocs.WithLogger(slog.Default()))
 	v := maxprocs.Current()
 	cpu := runtime.NumCPU()
 	if v != cpu {
