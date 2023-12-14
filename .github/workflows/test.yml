@@ -36,7 +36,7 @@ jobs:
 
       - name: Test
         # Without '--' in --test.gocoverdir, powershell mangles arguments.
-        run: go test -v -cover -count 1 --test.gocoverdir .gocover ./...
+        run: go test -v --cover --count 1 --test.gocoverdir .gocover ./...
         env:
           CGO_ENABLED: "0"
 

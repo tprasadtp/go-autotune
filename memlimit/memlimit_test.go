@@ -32,11 +32,6 @@ func TestConfigure_EnvVariable(t *testing.T) {
 			expect: math.MaxInt64,
 		},
 		{
-			name:   "invalid-unit",
-			env:    "250FooBar",
-			expect: math.MaxInt64,
-		},
-		{
 			name:   "empty",
 			env:    "",
 			expect: math.MaxInt64,
@@ -47,24 +42,34 @@ func TestConfigure_EnvVariable(t *testing.T) {
 			expect: math.MaxInt64,
 		},
 		{
-			name:   "GOMEMLIMIT=500Mi",
-			env:    "500Mi",
-			expect: 500 * shared.MiByte,
-		},
-		{
-			name:   "GOMEMLIMIT=500MiB",
+			name:   "500MiB",
 			env:    "500MiB",
 			expect: 500 * shared.MiByte,
 		},
 		{
-			name:   "GOMEMLIMIT=500MB",
-			env:    "500MB",
-			expect: 500 * shared.MByte,
-		},
-		{
-			name:   "GOMEMLIMIT=5GiB",
+			name:   "5GiB",
 			env:    "5GiB",
 			expect: 5 * shared.GiByte,
+		},
+		{
+			name:   "Invalid-500Mi",
+			env:    "500Mi",
+			expect: math.MaxInt64,
+		},
+		{
+			name:   "Invalid-500MB",
+			env:    "500MB",
+			expect: math.MaxInt64,
+		},
+		{
+			name:   "Invalid-Float-2.5GiB",
+			env:    "2.5GiB",
+			expect: math.MaxInt64,
+		},
+		{
+			name:   "Invalid-Unit",
+			env:    "250FooBar",
+			expect: math.MaxInt64,
 		},
 	}
 	for _, tc := range tt {

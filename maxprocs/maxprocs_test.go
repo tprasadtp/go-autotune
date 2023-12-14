@@ -88,7 +88,7 @@ func TestConfigure_WithCPUQuotaFunc(t *testing.T) {
 			t.Errorf("expected=%d, got=%d", expected, v)
 		}
 	})
-	t.Run("ErrorDetectingCPUQuota", func(t *testing.T) {
+	t.Run("WithCPUQuotaFunc-Error", func(t *testing.T) {
 		reset()
 		maxprocs.Configure(
 			maxprocs.WithLogger(slog.Default()),
@@ -102,7 +102,7 @@ func TestConfigure_WithCPUQuotaFunc(t *testing.T) {
 			t.Errorf("expected=%d, got=%d", expected, v)
 		}
 	})
-	t.Run("FixedValue", func(t *testing.T) {
+	t.Run("WithCPUQuotaFunc-FixedValue", func(t *testing.T) {
 		reset()
 		maxprocs.Configure(
 			maxprocs.WithLogger(slog.Default()),

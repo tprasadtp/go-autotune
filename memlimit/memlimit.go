@@ -83,11 +83,27 @@ func Configure(opts ...Option) {
 	// Check if GOMEMLIMIT env variable is set.
 	env := os.Getenv("GOMEMLIMIT")
 	if env != "" {
-		memLimitFromEnv, err := shared.ParseSize(env)
-		if err == nil && memLimitFromEnv > 0 {
+		limit, err := shared.ParseSize(env)
+		if err == nil && limit > 0 {
 			cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
-				"Setting GOMEMLIMIT from environment variable", slog.String("GOMEMLIMIT", env))
-			debug.SetMemoryLimit(memLimitFromEnv)
+				"Setting GOMEMLIMIT from environment variable",
+				slog.String("GOMEMLIMIT", env))
+			snapshot := debug.SetMemoryLimit(-1)
+			if snapshot != limit {
+				cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
+					"Setting GOMEMLIMIT",
+					slog.String("GOMEMLIMIT", strconv.FormatInt(limit, 10)))
+				defer func() {
+					err := recover()
+					if err != nil {
+						cfg.Logger.LogAttrs(ctx, slog.LevelError,
+							"Panic while setting GOMEMLIMIT, reverting the change",
+							slog.Any("err", err))
+						debug.SetMemoryLimit(snapshot)
+					}
+				}()
+				debug.SetMemoryLimit(limit)
+			}
 		} else {
 			cfg.Logger.LogAttrs(ctx, slog.LevelError,
 				"GOMEMLIMIT environment variable is invalid", slog.String("GOMEMLIMIT", env))

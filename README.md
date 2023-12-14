@@ -25,8 +25,7 @@ import (
 ## Testing
 
 Testing on Linux requires cgroups v2 support enabled and systemd 249 or later.
-Testing on Windows requires Windows 10 or later. Running unit tests on a system
-with single CPU core _might error_.
+Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
 
 - Create `.gocover` directory to gather coverage data
 

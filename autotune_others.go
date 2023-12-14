@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
+//go:build !linux
+
 package autotune
 
 import (
@@ -13,16 +15,18 @@ import (
 
 //nolint:gochecknoinits // ignore
 func init() {
-	if !shared.IsFalse("GO_AUTOTUNE") && !shared.IsFalse("GOAUTOTUNE") {
-		var logger *slog.Logger
-		if shared.IsDebug("GO_AUTOTUNE") || shared.IsDebug("GOAUTOTUNE") {
-			logger = slog.Default()
-		}
-		maxprocs.Configure(
-			maxprocs.WithLogger(logger),
-		)
-		memlimit.Configure(
-			memlimit.WithLogger(logger),
-		)
+	if shared.IsFalse("GO_AUTOTUNE") || shared.IsFalse("GOAUTOTUNE") {
+		return
 	}
+
+	var logger *slog.Logger
+	if shared.IsDebug("GO_AUTOTUNE") || shared.IsDebug("GOAUTOTUNE") {
+		logger = slog.Default()
+	}
+	maxprocs.Configure(
+		maxprocs.WithLogger(logger),
+	)
+	memlimit.Configure(
+		memlimit.WithLogger(logger),
+	)
 }
