@@ -4,8 +4,7 @@ updates:
     directory: /
     labels:
       - "dependabot"
-      - "dependencies"
-      - "dep/actions"
+      - "deps/actions"
       - "luna/autoupdate"
     commit-message:
       prefix: "chore(deps):"
@@ -21,8 +20,7 @@ updates:
     directory: /
     labels:
       - "dependabot"
-      - "dependencies"
-      - "dep/go"
+      - "deps/go"
       - "luna/autoupdate"
     commit-message:
       prefix: "chore(deps):"
