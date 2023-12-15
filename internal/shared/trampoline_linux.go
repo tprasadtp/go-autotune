@@ -31,7 +31,7 @@ func HasCommandSystemdRun() bool {
 func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 	t.Helper()
 	if fn == nil {
-		t.Fatalf("fn function is nil")
+		t.Fatalf("function is nil")
 	}
 
 	if !HasCommandSystemdRun() {
@@ -40,7 +40,6 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 
 	// If trampoline is true, run the given test function.
 	if IsTrue("GO_TEST_EXEC_TRAMPOLINE") {
-		t.Logf("Running test function...")
 		fn(t)
 		return
 	}
@@ -64,11 +63,6 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 		osOrSystem,
 		"--no-ask-password",
 		"--wait",
-	}
-
-	// If test is not verbose, hide systemd-run logs via --quiet flag
-	if !TestingIsVerbose() {
-		args = append(args, "--quiet")
 	}
 
 	// Args specified by tests.
@@ -110,10 +104,11 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "systemd-run", args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	t.Logf("Running via : systemd-run %v", cmd.Args)
-	buf, err := cmd.CombinedOutput()
-
-	t.Logf("Output of systemd-run:\n%s", string(buf))
+	err := cmd.Run()
 	if err != nil {
 		t.Fatalf("Failed to re-exec test: %s", err)
 	}

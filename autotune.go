@@ -12,7 +12,7 @@
 //   - If GOMAXPROCS environment variable is specified, it is always used, and
 //     cgroup limits are ignored (even if GOMAXPROCS is invalid).
 //   - CPU quota is automatically determined from cgroup [cpu.max] interface file
-//     for Linux and via [QueryInformationJobObject] for Windows.
+//     for Linux and via [QueryInformationJobObject] API for Windows.
 //   - Factional CPUs quotas are rounded off with [math.Ceil] by default. This
 //     ensures maximum resource utilization. However, workload with a CPU quota
 //     of 2.1 may encounter some CPU throttling. It is recommended to use
@@ -23,7 +23,7 @@
 // to ensure CPU recommendation is an integer.
 //
 // For Windows containers with hyper-v isolation, hypervisor emulates specified
-// CPUs cores thus default value of GOMAXPROCS is optimal and is not changed.
+// CPU cores, thus the default value of GOMAXPROCS is optimal and need not be changed.
 //
 // # GOMEMLIMIT
 //
@@ -31,7 +31,7 @@
 // For Linux, cgroup memory limit [memory.max](referred from here onwards as max) is
 // a hard memory limit and [memory.high](referred from here onwards as high) is a soft
 // memory limit. For Windows [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] is used to get
-// max allowed memory. Currently Windows lacks support for soft memory limits.
+// max allowed memory. Currently, Windows lacks support for soft memory limits.
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit) and
 // per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred over
 // JobMemoryLimit. See [QueryInformationJobObject] and [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]
