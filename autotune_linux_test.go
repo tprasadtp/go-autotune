@@ -98,7 +98,24 @@ func TestLinux_NoLimits(t *testing.T) {
 	})
 }
 
+func TestLinux_CPUExactlyOne(t *testing.T) {
+	if shared.IsTrue("SKIP_SYSTEMD_CPUQUOTA_TESTS") {
+		t.SkipNow()
+	}
+	args := []string{
+		"--pipe",
+		"--setenv=GOAUTOTUNE=debug",
+		"--property=CPUQuota=100%",
+	}
+	shared.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, 1, math.MaxInt64)
+	})
+}
+
 func TestLinux_CPULessThanOne(t *testing.T) {
+	if shared.IsTrue("SKIP_SYSTEMD_CPUQUOTA_TESTS") {
+		t.SkipNow()
+	}
 	args := []string{
 		"--pipe",
 		"--setenv=GOAUTOTUNE=debug",
@@ -110,6 +127,9 @@ func TestLinux_CPULessThanOne(t *testing.T) {
 }
 
 func TestLinux_CPURoundToCeil(t *testing.T) {
+	if shared.IsTrue("SKIP_SYSTEMD_CPUQUOTA_TESTS") {
+		t.SkipNow()
+	}
 	if runtime.NumCPU() == 1 {
 		t.Skipf("Skipping CPU>1 tests on single core machine")
 	}
@@ -124,6 +144,9 @@ func TestLinux_CPURoundToCeil(t *testing.T) {
 }
 
 func TestLinux_CPUMoreThanOne(t *testing.T) {
+	if shared.IsTrue("SKIP_SYSTEMD_CPUQUOTA_TESTS") {
+		t.SkipNow()
+	}
 	if runtime.NumCPU() < 3 {
 		t.Skipf("Skipping CPU>2 tests on dual core machine")
 	}
