@@ -38,12 +38,19 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 		t.Fatalf("systemd-run command is not available")
 	}
 
-	trampoline := strings.TrimSpace(strings.ToLower(os.Getenv("GO_TEST_EXEC_TRAMPOLINE")))
-
 	// If trampoline is true, run the given test function.
-	if trampoline == "true" {
+	if IsTrue("GO_TEST_EXEC_TRAMPOLINE") {
+		t.Logf("Running test function...")
 		fn(t)
 		return
+	}
+
+	// Env variables
+	envv := os.Environ()
+	for _, item := range envv {
+		if strings.Contains(strings.ToUpper(item), "GO_TEST_EXEC_TRAMPOLINE") {
+			t.Fatalf("env GO_TEST_EXEC_TRAMPOLINE is already defined")
+		}
 	}
 
 	osOrSystem := "--user"

@@ -2,31 +2,59 @@
 
 ## Windows Containers
 
-- Build go binary
+- Build example go binary
 
   ```console
-  go build example/example.go -o example/example.exe
+  go build -o .\build\example.exe .\example
   ```
 
-- Run with docker process isolation
+- Run with container with process isolation
 
   ```powershell
-  docker run --isolation=process --rm --env=GO_AUTOTUNE=debug -it --user=ContainerAdministrator --memory=100M --cpus=0.5 -v $PWD\example:C:\Shared mcr.microsoft.com/windows/nanoserver:2004 C:\shared\example.exe
+  docker run --isolation=process --rm --env=GO_AUTOTUNE=debug --user=ContainerAdministrator --memory=100M --cpus=0.5 -v $PWD\build:C:\app mcr.microsoft.com/windows/nanoserver:2004 C:\app\example.exe
   ```
 
-  ``````console
-  time=2023-12-13T01:40:25.022+01:00 level=INFO msg="Successfully obtained CPU Quota" CPUQuota=2
-  time=2023-12-13T01:40:25.026+01:00 level=INFO msg="Setting GOMAXPROCS" GOMAXPROCS=2
-  time=2023-12-13T01:40:25.027+01:00 level=INFO msg="Successfully obtained memory limits" memory.max=104857600 memory.high
-  =0
-  time=2023-12-13T01:40:25.030+01:00 level=INFO msg="Using default reserve percent value" ReservePercent=10
-  time=2023-12-13T01:40:25.033+01:00 level=ERROR msg="Max allowed memory (with reserve)" memeory.max=94371840
-  time=2023-12-13T01:40:25.033+01:00 level=INFO msg="Only memory.max (with reserve) is specififed" GOMEMLIMIT=94371840
-  time=2023-12-13T01:40:25.034+01:00 level=INFO msg="Setting GOMEMLIMIT" GOMEMLIMIT=94371840
-  Env (GOMAXPROCS)  :
-  Env (GOMEMLIMIT)  :
-  Env (GO_AUTOTUNE) : debug
+  ```console
+  2023/12/15 04:32:37 INFO Successfully obtained cpu quota cpu.quota=0.5
+  2023/12/15 04:32:37 INFO Setting GOMAXPROCS GOMAXPROCS=1
+  2023/12/15 04:32:37 INFO Successfully obtained memory limits memory.max=104857600 memory.high=0 memory.reserve.bytes=10485760 memory.reserve.percent=10
+  2023/12/15 04:32:37 INFO Setting GOMEMLIMIT GOMEMLIMIT=94371840
+  GOOS       : windows
+  GOMAXPROCS : 1
+  NumCPU     : 4
+  GOMEMLIMIT : 94371840
+  ```
 
-  GOMAXPROCS        : 2
-  Memory Limit      : 94371840
+## Linux Systemd Services
+
+
+- Build example go binary
+
+  ```bash
+  go build -o build/example ./example/
+  ```
+
+- Run with systemd-run with resource limits
+
+  ```bash
+  systemd-run \
+    --user \
+    --pipe \
+    --quiet \
+    --setenv=GO_AUTOTUNE=debug \
+    --property="CPUQuota=150%" \
+    --property=MemoryHigh=250M \
+    --property=MemoryMax=300M \
+    build/example
+  ```
+
+  ```
+  2023/12/15 04:46:22 INFO Successfully obtained cpu quota cpu.quota=1.5
+  2023/12/15 04:46:22 INFO Setting GOMAXPROCS GOMAXPROCS=2
+  2023/12/15 04:46:22 INFO Successfully obtained memory limits memory.max=314572800 memory.high=262144000 memory.reserve.bytes=31457280 memory.reserve.percent=10
+  2023/12/15 04:46:22 INFO Setting GOMEMLIMIT GOMEMLIMIT=262144000
+  GOOS       : linux
+  GOMAXPROCS : 2
+  CPUs       : 4
+  GOMEMLIMIT : 262144000
   ```

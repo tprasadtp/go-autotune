@@ -34,9 +34,17 @@ jobs:
         if: runner.os == 'Windows'
         run: New-Item -ItemType Directory -Path .gocover
 
-      - name: Test
+      - name: Test (Unix)
         # Without '--' in --test.gocoverdir, powershell mangles arguments.
-        run: go test -v --cover --count 1 --test.gocoverdir .gocover ./...
+        if: runner.os != 'Windows'
+        run: go test --cover ./... --test.gocoverdir "$(pwd)/.gocover"
+        env:
+          CGO_ENABLED: "0"
+
+      - name: Test (Windows)
+        # Without '--' in --test.gocoverdir, powershell mangles arguments.
+        if: runner.os == 'Windows'
+        run: go test --cover ./... --test.gocoverdir "$PWD\.gocover"
         env:
           CGO_ENABLED: "0"
 

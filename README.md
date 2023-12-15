@@ -1,10 +1,10 @@
 # go-autotune
 
 [![go-reference](https://img.shields.io/badge/go-reference-00758D?logo=go&logoColor=white)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
-[![test](https://github.com/tprasadtp/go-launchd/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml)
-[![lint](https://github.com/tprasadtp/go-launchd/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml)
-[![license](https://img.shields.io/github/license/tprasadtp/go-launchd)](https://github.com/tprasadtp/go-autotune/blob/master/LICENSE)
-[![latest-version](https://img.shields.io/github/v/tag/tprasadtp/go-launchd?color=7f50a6&label=release&logo=semver&sort=semver)](https://github.com/tprasadtp/go-autotune/releases)
+[![test](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml)
+[![lint](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml)
+[![license](https://img.shields.io/github/license/tprasadtp/go-autotune)](https://github.com/tprasadtp/go-autotune/blob/master/LICENSE)
+[![latest-version](https://img.shields.io/github/v/tag/tprasadtp/go-autotune?color=7f50a6&label=release&logo=semver&sort=semver)](https://github.com/tprasadtp/go-autotune/releases)
 
 Automatically configure [`GOMAXPROCS`][GOMAXPROCS] and [`GOMEMLIMIT`][GOMEMLIMIT]
 for your applications to match CPU quota and memory limits assigned.
@@ -27,19 +27,15 @@ import (
 Testing on Linux requires cgroups v2 support enabled and systemd 249 or later.
 Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
 
-- Create `.gocover` directory to gather coverage data
+```console
+go test -cover ./...
+```
 
-    ```bash
-    mkdir .gocover
-    ```
+> [!IMPORTANT]
+>
+> Running _tests_ within with already applied resource limits is not supported.
 
-- Run Tests
-
-    ```console
-    go test -cover --test.gocoverdir .gocover ./...
-    ```
-
-## Requirements
+## Requirements (Linux)
 
 This module only supports cgroups V2. Following Linux distributions enable it by default.
 
@@ -53,8 +49,14 @@ This module only supports cgroups V2. Following Linux distributions enable it by
 - containerd v1.4 or later
 - cri-o v1.20 or later
 
-For Windows 10 20H2 or later is supported. For Windows Server only 2019 or later is supported.
-For Windows containers, only `--isloation=process` is fully supported.
+## Requirements (Windows)
+
+- Windows 10 20H2 or later
+- Windows Server 2019 or later
+
+> [!IMPORTANT]
+>
+> For Windows containers, only `process` isolation is fully supported.
 
 ## Disabling Automatic Configuration
 
