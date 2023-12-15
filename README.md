@@ -10,6 +10,11 @@ Automatically configure [`GOMAXPROCS`][GOMAXPROCS] and [`GOMEMLIMIT`][GOMEMLIMIT
 for your applications to match CPU quota and memory limits assigned.
 Supports _both_ Windows and Linux.
 
+## How
+
+- For Linux CPU and memory limits are obtained from cgroup v2 interface files.
+- For Windows, [QueryInformationJobObject] API is used.
+
 ## Usage
 
 See [API docs](https://pkg.go.dev/github.com/tprasadtp/go-autotune) for more info and examples.
@@ -21,19 +26,6 @@ import (
 	_ "github.com/tprasadtp/go-autotune" // Automatically adjusts GOMAXPROCS & GOMEMLIMIT
 )
 ```
-
-## Testing
-
-Testing on Linux requires cgroups v2 support enabled and systemd 249 or later.
-Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
-
-```console
-go test -cover ./...
-```
-
-> [!IMPORTANT]
->
-> Running _tests_ within with already applied resource limits is not supported.
 
 ## Requirements (Linux)
 
@@ -48,6 +40,17 @@ This module only supports cgroups V2. Following Linux distributions enable it by
 - Kubernetes 1.25 or later
 - containerd v1.4 or later
 - cri-o v1.20 or later
+
+For [user level units](https://wiki.archlinux.org/title/systemd/User),
+cpu delegation is enabled by default for systemd [252 or later][b8df7f8].
+For older versions, It needs to be enabled [manually](https://github.com/systemd/systemd/issues/12362#issuecomment-485762928).
+This also affects rootless docker and podman.
+
+As most production workloads use
+kubernetes or system level units, this is not an issue in most cases. If you are
+running rootless podman/docker and require CPUQuota to be applied to your workloads,
+upgrade to a distribution which uses systemd 252 or later or manually delegate
+cpu controller to systemd user instance.
 
 ## Requirements (Windows)
 
@@ -92,6 +95,22 @@ linters:
     - gomodguard
 ```
 
+## Testing
+
+Testing on Linux requires cgroups v2 support enabled and systemd 249 or later.
+Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
+
+```console
+go test -cover ./...
+```
+
+> [!IMPORTANT]
+>
+> Running _unit tests_ within containers/tasks with already applied resource limits
+> is _not supported_.
+
 [GOMEMLIMIT]: https://pkg.go.dev/runtime/debug#SetMemoryLimit
 [GOMAXPROCS]: https://pkg.go.dev/runtime#GOMAXPROCS
 [golangci-lint]: https://golangci-lint.run/
+[b8df7f8]: https://github.com/systemd/systemd/pull/23887
+[QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
