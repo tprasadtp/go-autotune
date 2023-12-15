@@ -71,10 +71,7 @@ func TestGetQuota_Memory(t *testing.T) {
 }
 
 func TestGetQuota_CPU(t *testing.T) {
-	// https://github.com/systemd/systemd/issues/12362
-	if shared.IsTrue("SKIP_SYSTEMD_CPUQUOTA_TESTS") {
-		t.SkipNow()
-	}
+	shared.SkipIfCPUControllerIsNotAvailable(t)
 	args := []string{
 		"--pipe",
 		"--property=CPUQuota=50%",

@@ -4,6 +4,7 @@
 package shared
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -27,6 +28,49 @@ func HasCommandSystemdRun() bool {
 	return hasCommandSystemdRunCache
 }
 
+var hasCPUControllerCache bool
+var hasCPUControllerOnce sync.Once
+
+// SkipIfCPUControllerIsNotAvailable skips the test if CPU controller is not available.
+// See https://github.com/systemd/systemd/pull/23887. This does not change test coverage
+// much as unit test can use WithCPUQuotaFunc to emulate responses.
+func SkipIfCPUControllerIsNotAvailable(t *testing.T) {
+	// systemctl show user@$(id -u).service --property=DelegateControllers
+	hasCPUControllerOnce.Do(func() {
+		uid := os.Getuid()
+		if uid == 0 {
+			hasCPUControllerCache = true
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		//nolint:gosec // input is trusted
+		cmd := exec.CommandContext(ctx,
+			"systemctl",
+			"show",
+			"--property=DelegateControllers",
+			fmt.Sprintf("user@%d.service", uid),
+		)
+		buf := &bytes.Buffer{}
+		cmd.Stderr = buf
+		cmd.Stdout = buf
+
+		t.Logf("Checking is CPU controllers are available via: %s", cmd)
+		err := cmd.Run()
+		if err != nil {
+			t.Errorf("Failed to run cmd '%s': %s", cmd, err)
+		}
+
+		t.Logf("systemctl output: %s", buf.String())
+		if strings.Contains(buf.String(), "cpu") {
+			hasCPUControllerCache = true
+		}
+	})
+	if !hasCPUControllerCache {
+		t.Skipf("CPUController is not available. See https://github.com/systemd/systemd/pull/23887")
+	}
+}
+
 // SystemdRun runs test function fn via systemd-run.
 func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 	t.Helper()
@@ -44,7 +88,7 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 		return
 	}
 
-	// Env variables
+	// Check Env variables
 	envv := os.Environ()
 	for _, item := range envv {
 		if strings.Contains(strings.ToUpper(item), "GO_TEST_EXEC_TRAMPOLINE") {
@@ -52,15 +96,15 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 		}
 	}
 
-	osOrSystem := "--user"
+	userOrSystem := "--user"
 
-	if syscall.Geteuid() == 0 {
-		osOrSystem = "--system"
+	if syscall.Getuid() == 0 {
+		userOrSystem = "--system"
 	}
 
 	// Build arguments to re-exec this test.
 	args := []string{
-		osOrSystem,
+		userOrSystem,
 		"--no-ask-password",
 		"--wait",
 	}

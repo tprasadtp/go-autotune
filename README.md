@@ -29,7 +29,7 @@ import (
 
 ## Requirements (Linux)
 
-This module only supports cgroups V2. Following Linux distributions enable it by default.
+This module _only supports cgroups V2_. Following Linux distributions enable it by default.
 
 - Container Optimized OS (since M97)
 - Ubuntu (since 21.10)
@@ -55,11 +55,7 @@ cpu controller to systemd user instance.
 ## Requirements (Windows)
 
 - Windows 10 20H2 or later
-- Windows Server 2019 or later
-
-> [!IMPORTANT]
->
-> For Windows containers, only `process` isolation is fully supported.
+- Windows Server 2019 or later.
 
 ## Disabling Automatic Configuration
 
@@ -104,10 +100,8 @@ Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
 go test -cover ./...
 ```
 
-> [!IMPORTANT]
->
-> Running _unit tests_ within containers/tasks with already applied resource limits
-> is _not supported_.
+Running _unit tests_ within containers/tasks with already applied resource limits
+is _not supported_.
 
 [GOMEMLIMIT]: https://pkg.go.dev/runtime/debug#SetMemoryLimit
 [GOMAXPROCS]: https://pkg.go.dev/runtime#GOMAXPROCS
