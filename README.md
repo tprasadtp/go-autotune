@@ -97,7 +97,7 @@ linters:
 
 ## Testing
 
-Testing on Linux requires cgroups v2 support enabled and systemd 249 or later.
+Testing on Linux requires cgroups v2 support enabled and systemd 252 or later.
 Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
 
 ```console
