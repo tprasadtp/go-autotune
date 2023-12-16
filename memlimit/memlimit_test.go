@@ -127,18 +127,33 @@ func TestConfigure_WithOptions(t *testing.T) {
 		}
 	})
 
-	t.Run("WithMaxReservePercent", func(t *testing.T) {
+	t.Run("WithMaxReservePercent-50", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
 			memlimit.WithLogger(slog.Default()),
 			memlimit.WithMaxReservePercent(50),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
-				return 50 * shared.GiByte, 0, nil
+				return 10 * shared.GiByte, 0, nil
 			}),
 		)
 		v := memlimit.Current()
-		if v != 25*shared.GiByte {
-			t.Errorf("expected=%d, got=%d", 25*shared.GiByte, v)
+		if v != 5*shared.GiByte {
+			t.Errorf("expected=%d, got=%d", 5*shared.GiByte, v)
+		}
+	})
+
+	t.Run("WithMaxReservePercent-0", func(t *testing.T) {
+		reset()
+		memlimit.Configure(
+			memlimit.WithLogger(slog.Default()),
+			memlimit.WithMaxReservePercent(0),
+			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
+				return 5 * shared.GiByte, 0, nil
+			}),
+		)
+		v := memlimit.Current()
+		if v != 5*shared.GiByte {
+			t.Errorf("expected=%d, got=%d", 5*shared.GiByte, v)
 		}
 	})
 
