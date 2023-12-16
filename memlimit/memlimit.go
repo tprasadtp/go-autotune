@@ -31,19 +31,24 @@ func Current() int64 {
 
 // Configure configures GOMEMLIMIT.
 //
-//   - If env variable GOMEMLIMIT is set, it is always used. Invalid value will be ignored.
-//   - If running on Linux and cgroups v2 is available, memory quota for the current
-//     process is determined automatically and used to determine GOMEMLIMIT.
-//   - On non linux platforms only GOMEMLIMIT env variable is considered.
+// Memory limits can be soft memory limit(high), or hard memory limits(max).
+// This package prefers using soft memory limit(high) whenever possible.
 //
-// This function prefers using soft memory limit whenever possible.
-// cgroup memory limit [memory.max](referred from here onwards as max) is a hard
-// memory limit and [memory.high](referred from here onwards as high) is a soft
-// memory limit.
+// For Linux, cgroup memory limit [memory.max] is a hard memory limit and
+// [memory.high] is a soft memory limit.
 //
+// For Windows, [QueryInformationJobObject] is used to get memory limits.
+// Windows lacks the support for soft memory limits. [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]
+// defines per process(ProcessMemoryLimit) and per job memory limits(JobMemoryLimit).
+// ProcessMemoryLimit is always preferred over JobMemoryLimit.
+// Both are considered hard limits.
+//
+//   - If GOMEMLIMIT environment variable is specified, it is always used, and
+//     limits are ignored. If GOMEMLIMIT is invalid, go runtime may panic during
+//     initialization.
 //   - A percentage of maximum available memory is set as reserved.
 //     This helps to avoid OOMs when only max memory is specified.
-//     Be default 10% is set as reserved for max < 5Gi and 5% for max >= 5Gi.
+//     By default, 10% is set as reserved for max < 5Gi and 5% for max >= 5Gi.
 //   - If both max and high are positive and max - max*(reserved/100) is less than
 //     high, GOMEMLIMIT is set to max - max*(reserved/100).
 //   - If both max and high are positive and max - max*(reserved/100)
@@ -53,8 +58,11 @@ func Current() int64 {
 //
 // [memory.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
 // [memory.high]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
+// [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 func Configure(opts ...Option) {
-	cfg := &config{}
+	cfg := &config{
+		MaxReservePercent: -1,
+	}
 	ctx := context.Background()
 
 	// Apply all options.
