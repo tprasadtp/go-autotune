@@ -41,9 +41,9 @@ This module _only supports cgroups V2_. Following Linux distributions enable it 
 - containerd v1.4 or later
 - cri-o v1.20 or later
 
-For [user level units](https://wiki.archlinux.org/title/systemd/User),
-cpu delegation is enabled by default for systemd [252 or later][b8df7f8].
-For older versions, It needs to be enabled [manually](https://github.com/systemd/systemd/issues/12362#issuecomment-485762928).
+For systemd [user level units](https://wiki.archlinux.org/title/systemd/User),
+CPU delegation is enabled by default for systemd [252 or later][b8df7f8].
+For older versions, It needs to be enabled [manually][enable-cpu-delegation].
 This also affects rootless docker and podman.
 
 ## Requirements (Windows)
@@ -102,3 +102,4 @@ is _not supported_.
 [golangci-lint]: https://golangci-lint.run/
 [b8df7f8]: https://github.com/systemd/systemd/pull/23887
 [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
+[enable-cpu-delegation]: https://github.com/systemd/systemd/issues/12362#issuecomment-485762928

@@ -31,15 +31,13 @@ func Current() int {
 
 // Configure configures GOMAXPROCS.
 //
-//   - If env variable GOMAXPROCS is set and is valid positive integer, it is always used.
-//   - If running on Linux and cgroups v2 is available, CPU quota from current PID is
-//     determined automatically and used to determine GOMAXPROCS.
-//   - On non linux platforms only GOMAXPROCS env variable is considered.
-//   - Fractional CPUs quotas are rounded off with [math.Ceil] by default,
-//     unless overridden with [WithRoundFunc].
+//   - If GOMAXPROCS environment variable is specified, it is always used, and
+//     CPU quota is ignored (even if GOMAXPROCS is invalid).
+//   - CPU quota is automatically determined from cgroup [cpu.max] interface file
+//     for Linux and from [QueryInformationJobObject] API for Windows.
+//   - Factional CPUs quotas are rounded off with [math.Ceil] by default. This
+//     ensures maximum resource utilization.
 //   - If CPU quota is less than 1, GOMAXPROCS is set to 1.
-//   - This function by default logs nothing. Custom logger can be specified via
-//     [WithLogger].
 func Configure(opts ...Option) {
 	cfg := &config{}
 	ctx := context.Background()

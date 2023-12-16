@@ -15,6 +15,7 @@
 //     for Linux and from [QueryInformationJobObject] API for Windows.
 //   - Factional CPUs quotas are rounded off with [math.Ceil] by default. This
 //     ensures maximum resource utilization.
+//   - If CPU quota is less than 1, GOMAXPROCS is set to 1.
 //
 // Workload with fractional CPU quota (for example, 2.1) may encounter some CPU
 // throttling. If you're using [Vertical Pod autoscaling] and do not wish to encounter
@@ -29,14 +30,17 @@
 // Memory limits can be soft memory limit(high), or hard memory limits(max).
 // This package prefers using soft memory limit(high) whenever possible.
 //
+// Memory limits can be soft memory limit(high), or hard memory limits(max).
+// This package prefers using soft memory limit(high) whenever possible.
+//
 // For Linux, cgroup memory limit [memory.max] is a hard memory limit and
 // [memory.high] is a soft memory limit.
 //
-// For Windows, [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] is used to get
-// max allowed memory. Windows lacks the support for soft memory limits.
-// [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)
-// and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred
-// over JobMemoryLimit. Both are considered hard limits.
+// For Windows, [QueryInformationJobObject] is used to get memory limits.
+// Windows lacks the support for soft memory limits. [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]
+// defines per process(ProcessMemoryLimit) and per job memory limits(JobMemoryLimit).
+// ProcessMemoryLimit is always preferred over JobMemoryLimit.
+// Both are considered hard limits.
 //
 //   - If GOMEMLIMIT environment variable is specified, it is always used, and
 //     limits are ignored. If GOMEMLIMIT is invalid, go runtime may panic during
