@@ -32,12 +32,11 @@
 // For Linux, cgroup memory limit [memory.max] is a hard memory limit and
 // [memory.high] is a soft memory limit.
 //
-// For Windows [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] is used to get
+// For Windows, [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] is used to get
 // max allowed memory. Windows lacks the support for soft memory limits.
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)
 // and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred
-// over JobMemoryLimit. Both are considered hard limits. See [QueryInformationJobObject]
-// and [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] for more information.
+// over JobMemoryLimit. Both are considered hard limits.
 //
 //   - If GOMEMLIMIT environment variable is specified, it is always used, and
 //     limits are ignored. If GOMEMLIMIT is invalid, go runtime may panic during
@@ -74,10 +73,10 @@
 // This package MUST NOT be used with other packages which also tweak GOMAXPROCS
 // or GOMEMLIMIT. Some known incompatible packages include,
 //
-//   - [go.uber.org/autmaxprocs]
+//   - [go.uber.org/automaxprocs]
 //   - [github.com/KimMachineGun/automemlimit]
 //
-// For using custom init function see,
+// For using custom init function or configuring manually see,
 //
 //   - [github.com/tprasadtp/go-autotune/maxprocs] for configuring GOMAXPROCS.
 //   - [github.com/tprasadtp/go-autotune/memlimit] for configuring GOMEMLIMIT.
