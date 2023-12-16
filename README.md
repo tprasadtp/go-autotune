@@ -46,12 +46,6 @@ cpu delegation is enabled by default for systemd [252 or later][b8df7f8].
 For older versions, It needs to be enabled [manually](https://github.com/systemd/systemd/issues/12362#issuecomment-485762928).
 This also affects rootless docker and podman.
 
-As most production workloads use
-kubernetes or system level units, this is not an issue in most cases. If you are
-running rootless podman/docker and require CPUQuota to be applied to your workloads,
-upgrade to a distribution which uses systemd 252 or later or manually delegate
-cpu controller to systemd user instance.
-
 ## Requirements (Windows)
 
 - Windows 10 20H2 or later
@@ -60,7 +54,7 @@ cpu controller to systemd user instance.
 ## Disabling Automatic Configuration
 
 To disable automatic configuration at runtime (for compiled binaries),
-Set `GO_AUTOTUNE` environment variable to `false` or `0`.
+Set `GO_AUTOTUNE` environment variable to `0` or `false`.
 
 ## Incompatible Modules
 

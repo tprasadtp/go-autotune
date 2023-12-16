@@ -114,6 +114,20 @@ linters-settings:
       SPDX-FileCopyrightText: {{ copyright }}
       SPDX-License-Identifier: {{ license }}
 
+  gomoddirectives:
+    # Allow local `replace` directives.
+    # Default: false
+    replace-local: false
+    # List of allowed `replace` directives.
+    # Default: []
+    replace-allow-list: []
+    # Allow to not explain why the version has been retracted in the `retract` directives.
+    # Default: false
+    retract-allow-no-explanation: false
+    # Forbid the use of the `exclude` directives.
+    # Default: false
+    exclude-forbidden: false
+
   gomodguard:
     blocked:
       # List of blocked modules.
@@ -126,27 +140,29 @@ linters-settings:
 
         # Use stdlib or custom replacements.
         - github.com/mitchellh/go-homedir:
-            reason: "Use stdlib provided os.UserHomeDir()."
+            reason: "Use os.UserHomeDir() from stdlib."
 
         - github.com/hashicorp/go-multierror:
-            reason: "Use stdlib provided errors.Join() available in go 1.20."
+            reason: "Use errors.Join() from from stdlib."
         - go.uber.org/multierr:
-            reason: "Use stdlib provided errors.Join() available in go 1.20."
+            reason: "Use errors.Join() from from stdlib."
         - github.com/pkg/errors:
-            reason: "Use error wrapping available in stdlib"
+            reason: "Use error wrapping directive(%w) in stdlib"
 
+        # go 1.19 introduced New atomic types.
+        - go.uber.org/atomic:
+            reason: "Use sync/atomic from stdlib."
+
+        # Use log/slog from stdlib or github.com/tprasadtp/log
         - github.com/hashicorp/go-hclog:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
             recommendations:
               - "log/slog"
               - "github.com/tprasadtp/log"
         - github.com/rs/zerolog:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
             recommendations:
               - "log/slog"
               - "github.com/tprasadtp/log"
         - github.com/sirupsen/logrus:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
             recommendations:
               - "log/slog"
               - "github.com/tprasadtp/log"
@@ -161,9 +177,7 @@ linters-settings:
             recommendations:
               - "github.com/tprasadtp/go-autotune"
         - github.com/KimMachineGun/automemlimit:
-            reason: |
-              Does not support cgroups mounted at non standard location,
-              does not support memory.high and does not support Windows.
+            reason: "Does not support cgroups mounted at non standard location and does not support Windows."
             recommendations:
               - "github.com/tprasadtp/go-autotune"
 
@@ -177,63 +191,6 @@ linters-settings:
             reason: "Does not support KMS backed keys or keys implementing crypto.Signer interface."
             recommendations:
               - "github.com/tprasadtp/go-githubapp"
-
-        # Hashicorp has changed their license to BUSL for most products.
-        # Libraries may not be under BUSL, but they directly or indirectly
-        # depend on BUSL licensed product.
-        # --------------------------------------------------------------------
-
-        # Hashicorp Terraform
-        - github.com/hashicorp/terraform-plugin-sdk:
-            reason: "Hashicorp terraform is no longer open source."
-        - github.com/hashicorp/terraform-cdk-go/cdktf:
-            reason: "Hashicorp terraform is no longer open source."
-        - github.com/hashicorp/go-tfe:
-            reason: "Hashicorp terraform is no longer open source."
-        - hashicorp/terraform-plugin-log:
-            reason: "Hashicorp terraform is no longer open source."
-
-        # Hashicorp Vault
-        - github.com/hashicorp/vault-client-go:
-            reason: "Hashicorp vault is no longer open source."
-        - github.com/hashicorp/vault/sdk:
-            reason: "Hashicorp vault is no longer open source."
-        - github.com/hashicorp/vault/api:
-            reason: "hashicorp vault is no longer open source."
-        - github.com/hashicorp/vault:
-            reason: "hashicorp vault is no longer open source."
-
-        # Hashicorp Consul
-        - github.com/hashicorp/consul/api:
-            reason: "Hashicorp consul is no longer open source."
-
-        # Hashicorp Nomad
-        - github.com/hashicorp/nomad/api:
-            reason: "Hashicorp nomad is no longer open source."
-
-        # Hashicorp Boundary
-        - github.com/hashicorp/boundary/api:
-            reason: "Hashicorp boundary is no longer open source."
-        - github.com/hashicorp/boundary/sdk:
-            reason: "Hashicorp boundary is no longer open source."
-        - github.com/hashicorp/boundary/plugins:
-            reason: "Hashicorp boundary is no longer open source."
-
-        # Hashicorp Packer
-        - github.com/hashicorp/packer-plugin-sdk:
-            reason: "Hashicorp packer is no longer open source."
-
-        # Elastic has changed their license to SSPL/ELv2 which is not
-        # open source for most of their products. Avoid them. Libraries
-        # may be under open source license, but they directly or indirectly
-        # depend on SSPL licensed product.
-        # --------------------------------------------------------------------
-
-        # Elastic libbeat/beats
-        - github.com/elastic/beats/libbeat:
-            reason: "Elastic beats is not open source."
-        - github.com/elastic/beats/v7/libbeat:
-            reason: "Elastic beats is not open source."
 
   forbidigo:
     # Forbid the following identifiers (list of regexp).
