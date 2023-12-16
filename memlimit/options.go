@@ -32,11 +32,12 @@ func WithLogger(logger *slog.Logger) Option {
 
 // WithMaxReservePercent configures percentage of max memory
 // to reserve before setting GOMEMLIMIT. Invalid values are ignored.
-// Default is 10%.
+// If not specified, Default is 10% is max memory is less than 5GiB
+// otherwise 5% is used.
 func WithMaxReservePercent(percent uint8) Option {
 	return &optionFunc{
 		fn: func(c *config) {
-			c.MaxReservePercent = percent
+			c.MaxReservePercent = int64(percent)
 		},
 	}
 }

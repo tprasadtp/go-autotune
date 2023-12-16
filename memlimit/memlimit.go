@@ -19,8 +19,8 @@ import (
 )
 
 type config struct {
+	MaxReservePercent int64
 	Logger            *slog.Logger
-	MaxReservePercent uint8
 	QuotaFunc         func() (int64, int64, error)
 }
 
@@ -130,7 +130,7 @@ func Configure(opts ...Option) {
 
 	// Set default ReservePercent value and ignore invalid values.
 	switch {
-	case cfg.MaxReservePercent == 0:
+	case cfg.MaxReservePercent < 0:
 		if max >= 5*shared.GiByte {
 			cfg.MaxReservePercent = 5
 		} else {
