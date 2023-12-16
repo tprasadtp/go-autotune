@@ -5,21 +5,20 @@
 //
 // Importing this package will automatically set GOMAXPROCS and GOMEMLIMIT
 // via [runtime.GOMAXPROCS] and [runtime/debug.SetMemoryLimit] respectively,
-// taking into consideration CPU quota, memory limits from assigned cgroup.
+// taking into consideration CPU quota and memory limits.
 //
 // # GOMAXPROCS
 //
 //   - If GOMAXPROCS environment variable is specified, it is always used, and
-//     cgroup limits are ignored (even if GOMAXPROCS is invalid).
+//     CPU quota is ignored (even if GOMAXPROCS is invalid).
 //   - CPU quota is automatically determined from cgroup [cpu.max] interface file
-//     for Linux and via [QueryInformationJobObject] API for Windows.
+//     for Linux and from [QueryInformationJobObject] API for Windows.
 //   - Factional CPUs quotas are rounded off with [math.Ceil] by default. This
-//     ensures maximum resource utilization. However, workload with a CPU quota
-//     of 2.1 may encounter some CPU throttling. It is recommended to use
-//     integer CPU quotas for workloads sensitive to CPU throttling.
+//     ensures maximum resource utilization.
 //
-// If you're using [Vertical Pod autoscaling] and do not wish to encounter CPU
-// throttling, it is recommended that you use [CPU Management with static policy],
+// Workload with fractional CPU quota (for example, 2.1) may encounter some CPU
+// throttling. If you're using [Vertical Pod autoscaling] and do not wish to encounter
+// CPU throttling, it is recommended that you use [CPU Management with static policy],
 // to ensure CPU recommendation is an integer.
 //
 // For Windows containers with hyper-v isolation, hypervisor emulates specified
@@ -27,22 +26,25 @@
 //
 // # GOMEMLIMIT
 //
-// This package prefers using soft memory limit whenever possible.
-// For Linux, cgroup memory limit [memory.max](referred from here onwards as max) is
-// a hard memory limit and [memory.high](referred from here onwards as high) is a soft
-// memory limit. For Windows [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] is used to get
-// max allowed memory. Currently, Windows lacks support for soft memory limits.
-// [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit) and
-// per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred over
-// JobMemoryLimit. See [QueryInformationJobObject] and [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]
-// for more information.
+// Memory limits can be soft memory limit(high), or hard memory limits(max).
+// This package prefers using soft memory limit(high) whenever possible.
+//
+// For Linux, cgroup memory limit [memory.max] is a hard memory limit and
+// [memory.high] is a soft memory limit.
+//
+// For Windows [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] is used to get
+// max allowed memory. Windows lacks the support for soft memory limits.
+// [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)
+// and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred
+// over JobMemoryLimit. Both are considered hard limits. See [QueryInformationJobObject]
+// and [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] for more information.
 //
 //   - If GOMEMLIMIT environment variable is specified, it is always used, and
-//     cgroup limits are ignored. If GOMEMLIMIT is invalid, no changes to GOMEMLIMIT
-//     are made.
+//     limits are ignored. If GOMEMLIMIT is invalid, go runtime may panic during
+//     initialization.
 //   - A percentage of maximum available memory is set as reserved.
 //     This helps to avoid OOMs when only max memory is specified.
-//     Be default 10% is set as reserved for max < 5Gi and 5% for max >= 5Gi.
+//     By default, 10% is set as reserved for max < 5Gi and 5% for max >= 5Gi.
 //   - If both max and high are positive and max - max*(reserved/100) is less than
 //     high, GOMEMLIMIT is set to max - max*(reserved/100).
 //   - If both max and high are positive and max - max*(reserved/100)
@@ -57,8 +59,6 @@
 //     [MemoryHigh].
 //   - For a workload with [MemoryMax]=10G, GOMEMLIMIT is set to 10200547328 bytes.
 //     (10 - 10*(5/100)) = 9.5GiB = 10200547328.
-//     [MemoryHigh] is ignored as [MemoryMax] - [WithMaxReservePercent] is less than
-//     [MemoryHigh].
 //   - For a workload with [MemoryHigh]=250M but no [MemoryMax] specified,
 //     GOMEMLIMIT is set to 250MiB = 262144000 bytes.
 //   - For a workload with [MemoryMax]=250M but no [MemoryHigh] specified,
@@ -69,24 +69,18 @@
 // Libraries should avoid importing this package, and it should only be imported
 // by the main package.
 //
-// # Logging
-//
-// By default, logging is disabled, to debug issues, use your own init function.
-// See examples for more info.
-//
 // # Conflicting Modules
 //
-// This package MUST NOT be used with other packages which tweak GOMAXPROCS and
-// GOMEMLIMIT. Some known incompatible packages include,
+// This package MUST NOT be used with other packages which also tweak GOMAXPROCS
+// or GOMEMLIMIT. Some known incompatible packages include,
 //
 //   - [go.uber.org/autmaxprocs]
 //   - [github.com/KimMachineGun/automemlimit]
 //
-// On non linux platforms this will only respect GOMAXPROCS and GOMEMLIMIT from
-// environment variables.
+// For using custom init function see,
 //
-//   - See [github.com/tprasadtp/go-autotune/maxprocs] for configuring GOMAXPROCS.
-//   - See [github.com/tprasadtp/go-autotune/memlimit] for configuring GOMEMLIMIT.
+//   - [github.com/tprasadtp/go-autotune/maxprocs] for configuring GOMAXPROCS.
+//   - [github.com/tprasadtp/go-autotune/memlimit] for configuring GOMEMLIMIT.
 //
 // # Disable at Runtime
 //
