@@ -38,6 +38,9 @@ func Current() int {
 //   - Factional CPUs quotas are rounded off with [math.Ceil] by default. This
 //     ensures maximum resource utilization.
 //   - If CPU quota is less than 1, GOMAXPROCS is set to 1.
+//
+// [cpu.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#core-interface-files
+// [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 func Configure(opts ...Option) {
 	cfg := &config{}
 	ctx := context.Background()
