@@ -30,9 +30,6 @@
 // Memory limits can be soft memory limit(high), or hard memory limits(max).
 // This package prefers using soft memory limit(high) whenever possible.
 //
-// Memory limits can be soft memory limit(high), or hard memory limits(max).
-// This package prefers using soft memory limit(high) whenever possible.
-//
 // For Linux, cgroup memory limit [memory.max] is a hard memory limit and
 // [memory.high] is a soft memory limit.
 //

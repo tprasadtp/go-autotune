@@ -59,6 +59,7 @@ func Current() int64 {
 // [memory.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
 // [memory.high]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
+// [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information
 func Configure(opts ...Option) {
 	cfg := &config{
 		MaxReservePercent: -1,
