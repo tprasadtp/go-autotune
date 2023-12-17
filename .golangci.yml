@@ -26,7 +26,6 @@ linters-settings:
     # Default: true (disabled)
     disable-init-func-first-check: false
 
-
   gocyclo:
     min-complexity: 50
 
@@ -142,6 +141,7 @@ linters-settings:
         - github.com/mitchellh/go-homedir:
             reason: "Use os.UserHomeDir() from stdlib."
 
+        # go 1.20 introduced errors.Join use it.
         - github.com/hashicorp/go-multierror:
             reason: "Use errors.Join() from from stdlib."
         - go.uber.org/multierr:
@@ -153,7 +153,21 @@ linters-settings:
         - go.uber.org/atomic:
             reason: "Use sync/atomic from stdlib."
 
-        # Use log/slog from stdlib or github.com/tprasadtp/log
+        # go 1.20 introduced fallback roots use it.
+        - github.com/certifi/gocertifi:
+            recommendations:
+              - "golang.org/x/crypto/x509roots/fallback"
+        - github.com/breml/rootcerts:
+            recommendations:
+              - "golang.org/x/crypto/x509roots/fallback"
+        - github.com/gwatts/rootcerts:
+            recommendations:
+              - "golang.org/x/crypto/x509roots/fallback"
+        - github.com/alexflint/stdroots:
+            recommendations:
+              - "golang.org/x/crypto/x509roots/fallback"
+
+        # Use log/slog from stdlib or github.com/tprasadtp/log wrapper
         - github.com/hashicorp/go-hclog:
             recommendations:
               - "log/slog"
@@ -474,6 +488,7 @@ issues:
         - gocognit
         - wrapcheck
         - containedctx
+        - sloglint
 
     # Disable some linters for generated code.
     - path: 'testdata\.go'
