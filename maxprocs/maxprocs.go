@@ -32,12 +32,20 @@ func Current() int {
 // Configure configures GOMAXPROCS.
 //
 //   - If GOMAXPROCS environment variable is specified, it is always used, and
-//     CPU quota is ignored (even if GOMAXPROCS is invalid).
+//     CPU quota is ignored.
 //   - CPU quota is automatically determined from cgroup [cpu.max] interface file
-//     for Linux and from [QueryInformationJobObject] API for Windows.
+//     for Linux and [QueryInformationJobObject] API for Windows.
 //   - Factional CPUs quotas are rounded off with [math.Ceil] by default. This
 //     ensures maximum resource utilization.
 //   - If CPU quota is less than 1, GOMAXPROCS is set to 1.
+//
+// Workload with fractional CPU quota (for example, 2.1) may encounter some CPU
+// throttling. If you're using [Vertical Pod autoscaling] and do not wish to encounter
+// CPU throttling, it is recommended that you use [CPU Management with static policy],
+// to ensure CPU recommendation is an integer.
+//
+// For Windows containers with hyper-v isolation, hypervisor emulates specified
+// CPU cores, thus the default value of GOMAXPROCS is optimal and need not be changed.
 //
 // [cpu.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#core-interface-files
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject

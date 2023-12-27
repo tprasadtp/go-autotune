@@ -37,15 +37,14 @@ func Current() int64 {
 // For Linux, cgroup memory limit [memory.max] is a hard memory limit and
 // [memory.high] is a soft memory limit.
 //
-// For Windows, [QueryInformationJobObject] is used to get memory limits.
+// For Windows, [QueryInformationJobObject] API is used to get memory limits.
 // Windows lacks the support for soft memory limits. [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]
 // defines per process(ProcessMemoryLimit) and per job memory limits(JobMemoryLimit).
-// ProcessMemoryLimit is always preferred over JobMemoryLimit.
-// Both are considered hard limits.
+// ProcessMemoryLimit is always preferred over JobMemoryLimit. Both are considered hard limits.
 //
 //   - If GOMEMLIMIT environment variable is specified, it is always used, and
-//     limits are ignored. If GOMEMLIMIT is invalid, go runtime may panic during
-//     initialization.
+//     limits are ignored. If GOMEMLIMIT environment variable is invalid, runtime
+//     may panic during initialization.
 //   - A percentage of maximum available memory is set as reserved.
 //     This helps to avoid OOMs when only max memory is specified.
 //     By default, 10% is set as reserved for max < 5Gi and 5% for max >= 5Gi.
