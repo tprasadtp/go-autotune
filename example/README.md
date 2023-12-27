@@ -8,7 +8,7 @@
   go build -o .\build\example.exe .\example
   ```
 
-- Run with container with process isolation
+- Run container with process isolation
 
   ```powershell
   docker run --isolation=process --rm --user=ContainerAdministrator --memory=100M --cpus=0.5 -v $PWD\build:C:\app mcr.microsoft.com/windows/nanoserver:2004 C:\app\example.exe
@@ -37,7 +37,7 @@
   systemctl show user@$(id -u).service --property=DelegateControllers
   ```
 
-- Run with systemd-run with resource limits
+- Run with with resource limits
 
   ```bash
   systemd-run \

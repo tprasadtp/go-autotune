@@ -10,9 +10,9 @@
 // # GOMAXPROCS
 //
 //   - If GOMAXPROCS environment variable is specified, it is always used, and
-//     CPU quota is ignored (even if GOMAXPROCS is invalid).
+//     CPU quota is ignored.
 //   - CPU quota is automatically determined from cgroup [cpu.max] interface file
-//     for Linux and from [QueryInformationJobObject] API for Windows.
+//     for Linux and [QueryInformationJobObject] API for Windows.
 //   - Factional CPUs quotas are rounded off with [math.Ceil] by default. This
 //     ensures maximum resource utilization.
 //   - If CPU quota is less than 1, GOMAXPROCS is set to 1.
@@ -33,15 +33,14 @@
 // For Linux, cgroup memory limit [memory.max] is a hard memory limit and
 // [memory.high] is a soft memory limit.
 //
-// For Windows, [QueryInformationJobObject] is used to get memory limits.
+// For Windows, [QueryInformationJobObject] API is used to get memory limits.
 // Windows lacks the support for soft memory limits. [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]
 // defines per process(ProcessMemoryLimit) and per job memory limits(JobMemoryLimit).
-// ProcessMemoryLimit is always preferred over JobMemoryLimit.
-// Both are considered hard limits.
+// ProcessMemoryLimit is always preferred over JobMemoryLimit. Both are considered hard limits.
 //
 //   - If GOMEMLIMIT environment variable is specified, it is always used, and
-//     limits are ignored. If GOMEMLIMIT is invalid, go runtime may panic during
-//     initialization.
+//     limits are ignored. If GOMEMLIMIT environment variable is invalid, runtime
+//     may panic during initialization.
 //   - A percentage of maximum available memory is set as reserved.
 //     This helps to avoid OOMs when only max memory is specified.
 //     By default, 10% is set as reserved for max < 5Gi and 5% for max >= 5Gi.
@@ -66,8 +65,11 @@
 //
 // # Use in library packages
 //
-// Libraries should avoid importing this package, and it should only be imported
-// by the main package.
+// Libraries should avoid importing autotune package. It should only be imported
+// by the main package. For using custom init function or configuring manually, use
+//
+//   - [github.com/tprasadtp/go-autotune/maxprocs] for configuring GOMAXPROCS.
+//   - [github.com/tprasadtp/go-autotune/memlimit] for configuring GOMEMLIMIT.
 //
 // # Conflicting Modules
 //
@@ -76,11 +78,6 @@
 //
 //   - [go.uber.org/automaxprocs]
 //   - [github.com/KimMachineGun/automemlimit]
-//
-// For using custom init function or configuring manually see,
-//
-//   - [github.com/tprasadtp/go-autotune/maxprocs] for configuring GOMAXPROCS.
-//   - [github.com/tprasadtp/go-autotune/memlimit] for configuring GOMEMLIMIT.
 //
 // # Disable at Runtime
 //

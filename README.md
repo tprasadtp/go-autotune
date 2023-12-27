@@ -12,7 +12,7 @@ Supports _both_ Windows and Linux.
 
 ## How
 
-- For Linux CPU and memory limits are obtained from cgroup v2 interface files.
+- For Linux, CPU and memory limits are obtained from cgroup v2 interface files.
 - For Windows, [QueryInformationJobObject] API is used.
 
 ## Usage
