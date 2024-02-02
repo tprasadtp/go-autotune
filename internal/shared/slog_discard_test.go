@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package discard_test
+package shared_test
 
 import (
 	"context"
@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tprasadtp/go-autotune/internal/discard"
+	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
 func TestDiscardHandler(t *testing.T) {
 	t.Run("always-disabled", func(t *testing.T) {
-		handler := discard.NewHandler()
+		handler := shared.NewDiscardHandler()
 		tt := []slog.Level{math.MinInt, -255, -8, -4, 0, 4, 8, 90, 99, 255, math.MaxInt}
 		for i := range tt {
 			if handler.Enabled(context.Background(), tt[i]) {
@@ -26,7 +26,7 @@ func TestDiscardHandler(t *testing.T) {
 	})
 
 	t.Run("nil-err-on-handle", func(t *testing.T) {
-		handler := discard.NewHandler()
+		handler := shared.NewDiscardHandler()
 		err := handler.Handle(context.Background(),
 			slog.NewRecord(time.Now(), slog.LevelInfo, "message", 0))
 		if err != nil {
@@ -35,7 +35,7 @@ func TestDiscardHandler(t *testing.T) {
 	})
 
 	t.Run("returns-receiver-with-attr", func(t *testing.T) {
-		handler := discard.NewHandler()
+		handler := shared.NewDiscardHandler()
 		rv := handler.WithAttrs([]slog.Attr{slog.String("key", "value")})
 		if !reflect.DeepEqual(rv, handler) {
 			t.Error("discard handler WithAttrs did not return the receiver")
@@ -43,15 +43,15 @@ func TestDiscardHandler(t *testing.T) {
 	})
 
 	t.Run("comparable", func(t *testing.T) {
-		h1 := discard.NewHandler()
-		h2 := discard.NewHandler()
+		h1 := shared.NewDiscardHandler()
+		h2 := shared.NewDiscardHandler()
 		if h1 != h2 {
 			t.Errorf("Returned values are not comparable")
 		}
 	})
 
 	t.Run("returns-receiver-with-group", func(t *testing.T) {
-		handler := discard.NewHandler()
+		handler := shared.NewDiscardHandler()
 		rv := handler.WithGroup("foo")
 		if !reflect.DeepEqual(rv, handler) {
 			t.Error("discard handler WithGroup did not return the receiver")

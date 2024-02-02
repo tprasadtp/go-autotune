@@ -43,6 +43,7 @@ func TestGetQuota_NoQuota(t *testing.T) {
 		}
 	})
 }
+
 func TestGetQuota_Memory(t *testing.T) {
 	args := []string{
 		"--pipe",

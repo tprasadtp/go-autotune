@@ -19,27 +19,9 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information
-type JOBOBJECT_CPU_RATE_CONTROL_INFORMATION struct {
-	ControlFlags uint32
-	Value        uint32
-}
-
-// https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information
-const (
-	JOB_OBJECT_CPU_RATE_CONTROL_ENABLE uint32 = 1 << iota
-	JOB_OBJECT_CPU_RATE_CONTROL_WEIGHT_BASED
-	JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP
-	JOB_OBJECT_CPU_RATE_CONTROL_NOTIFY
-	JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE
-)
-
-// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute
-const (
-	PROC_THREAD_ATTRIBUTE_JOB_LIST = 0x2000D
-)
-
 // WindowsRun runs test function fn via windows jobobject API.
+//
+//nolint:funlen
 func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv string, fn func(t *testing.T)) {
 	if fn == nil {
 		t.Fatalf("fn function is nil")
@@ -95,7 +77,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	}
 
 	// CreateJobObject
-	hJobObject, err := windows.CreateJobObject(NewSecurityAttributes(), jobObjectName)
+	hJobObject, err := windows.CreateJobObject(newSecurityAttributes(), jobObjectName)
 	if err != nil {
 		t.Fatalf("CreateJobObject: %s", err)
 	}
@@ -104,13 +86,13 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		if err != nil {
 			t.Logf("TerminateJobObject: %s", err)
 		}
-		windows.CloseHandle(hJobObject)
+		_ = windows.CloseHandle(hJobObject)
 	})
 
 	limit := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}
 	limit.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 
-	// // Add memory limits if any
+	// Add memory limits if any
 	if mem > 0 {
 		limit.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_JOB_MEMORY
 		limit.JobMemoryLimit = uintptr(mem)
@@ -121,7 +103,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		limit.ProcessMemoryLimit = uintptr(memProc)
 	}
 
-	rv, err := windows.SetInformationJobObject(
+	v1, err := windows.SetInformationJobObject(
 		hJobObject,
 		windows.JobObjectExtendedLimitInformation,
 		uintptr(unsafe.Pointer(&limit)),
@@ -130,8 +112,8 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	if err != nil {
 		t.Fatalf("SetInformationJobObject(Memory): %s", err)
 	}
-	if rv == 0 {
-		t.Fatalf("SetInformationJobObject(Memory): %d", rv)
+	if v1 == 0 {
+		t.Fatalf("SetInformationJobObject(Memory): %d", v1)
 	}
 
 	// // Add CPU limits if any.
@@ -146,7 +128,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 				return 10000
 			}(),
 		}
-		rv, err := windows.SetInformationJobObject(
+		v2, err := windows.SetInformationJobObject(
 			hJobObject,
 			windows.JobObjectCpuRateControlInformation,
 			uintptr(unsafe.Pointer(&cpuLimitInfo)),
@@ -155,8 +137,8 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		if err != nil {
 			t.Fatalf("SetInformationJobObject(CPU): %s", err)
 		}
-		if rv == 0 {
-			t.Fatalf("SetInformationJobObject(CPU): %d", rv)
+		if v2 == 0 {
+			t.Fatalf("SetInformationJobObject(CPU): %d", v2)
 		}
 	}
 
@@ -190,27 +172,26 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		t.Fatalf("UTF16PtrFromString(Args): %s", err)
 	}
 
-	t.Logf("Running via trampoline exe=%v", trampolineArgs)
+	t.Logf("Running via trampoline =%v", trampolineArgs)
 	err = windows.CreateProcess(
 		nil,
 		argsPtr,
 		nil,
 		nil,
 		false,
-		windows.EXTENDED_STARTUPINFO_PRESENT|uint32(windows.CREATE_UNICODE_ENVIRONMENT),
+		windows.EXTENDED_STARTUPINFO_PRESENT|windows.CREATE_UNICODE_ENVIRONMENT,
 		createEnvBlock(addCriticalEnv((envv))),
 		nil,
 		&startupInfoEx.StartupInfo,
 		processInfo,
 	)
-
 	if err != nil {
 		t.Fatalf("Failed to create process: %s", err)
 	}
 
 	// Don't need the thread handle for anything.
 	t.Cleanup(func() {
-		_ = windows.CloseHandle(windows.Handle(processInfo.Thread))
+		_ = windows.CloseHandle(processInfo.Thread)
 	})
 
 	// Re-use *os.Process to avoid reinventing the wheel here.
@@ -238,12 +219,12 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	}
 }
 
-// NewSecurityAttributes creates a SECURITY_ATTRIBUTES structure, that specifies the
+// newSecurityAttributes creates a SECURITY_ATTRIBUTES structure, that specifies the
 // security descriptor for the job object and determines that child
 // processes can not inherit the handle.
 //
 // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa379560(v=vs.85)
-func NewSecurityAttributes() *windows.SecurityAttributes {
+func newSecurityAttributes() *windows.SecurityAttributes {
 	var sa windows.SecurityAttributes
 	sa.Length = uint32(unsafe.Sizeof(sa))
 	sa.InheritHandle = 0
@@ -262,7 +243,7 @@ func createEnvBlock(envv []string) *uint16 {
 	for _, s := range envv {
 		length += len(s) + 1
 	}
-	length += 1
+	length++
 
 	b := make([]byte, length)
 	i := 0

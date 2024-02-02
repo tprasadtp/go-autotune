@@ -13,7 +13,6 @@ import (
 	"runtime/debug"
 	"strconv"
 
-	"github.com/tprasadtp/go-autotune/internal/discard"
 	"github.com/tprasadtp/go-autotune/internal/platform"
 	"github.com/tprasadtp/go-autotune/internal/shared"
 )
@@ -74,7 +73,7 @@ func Configure(opts ...Option) {
 
 	// If logger is nil, use a discard logger.
 	if cfg.Logger == nil {
-		cfg.Logger = slog.New(discard.NewHandler())
+		cfg.Logger = slog.New(shared.NewDiscardHandler())
 	}
 
 	// If MemLimitFunc is not specified use default.

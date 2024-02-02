@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
+//go:build linux
+
 package shared
 
 import (
@@ -16,8 +18,10 @@ import (
 	"time"
 )
 
-var hasCommandSystemdRunCache bool
-var hasCommandSystemdRunOnce sync.Once
+var (
+	hasCommandSystemdRunCache bool
+	hasCommandSystemdRunOnce  sync.Once
+)
 
 func HasCommandSystemdRun() bool {
 	hasCommandSystemdRunOnce.Do(func() {
@@ -28,8 +32,10 @@ func HasCommandSystemdRun() bool {
 	return hasCommandSystemdRunCache
 }
 
-var hasCPUControllerCache bool
-var hasCPUControllerOnce sync.Once
+var (
+	hasCPUControllerCache bool
+	hasCPUControllerOnce  sync.Once
+)
 
 // SkipIfCPUControllerIsNotAvailable skips the test if CPU controller is not available.
 // See https://github.com/systemd/systemd/pull/23887. This does not change test coverage
@@ -38,13 +44,17 @@ func SkipIfCPUControllerIsNotAvailable(t *testing.T) {
 	// systemctl show user@$(id -u).service --property=DelegateControllers
 	hasCPUControllerOnce.Do(func() {
 		uid := os.Getuid()
+		// Assume root always has access to CPU controller.
+		// Tests do not support running in a systemd unit with already applied
+		// resource limits or cgroup sandbox options.
 		if uid == 0 {
 			hasCPUControllerCache = true
+			return
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		//nolint:gosec // input is trusted
+		//nolint:gosec // input is from trusted source.
 		cmd := exec.CommandContext(ctx,
 			"systemctl",
 			"show",
@@ -55,7 +65,7 @@ func SkipIfCPUControllerIsNotAvailable(t *testing.T) {
 		cmd.Stderr = buf
 		cmd.Stdout = buf
 
-		t.Logf("Checking is CPU controllers are available via: %s", cmd)
+		t.Log("Checking is CPU controllers are available")
 		err := cmd.Run()
 		if err != nil {
 			t.Errorf("Failed to run cmd '%s': %s", cmd, err)
@@ -72,8 +82,8 @@ func SkipIfCPUControllerIsNotAvailable(t *testing.T) {
 }
 
 // SystemdRun runs test function fn via systemd-run.
+// Do not put this in a subtest as we need to preserver a test's name to re-exec it.
 func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
-	t.Helper()
 	if fn == nil {
 		t.Fatalf("function is nil")
 	}
@@ -117,6 +127,23 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 	}
 	args = append(args, flags...)
 
+	// Set timeouts.
+	//
+	// Ideally we would set per set timeouts, but they are not available yet.
+	// See https://github.com/golang/go/issues/48157 for more info.
+	var ctx context.Context
+	var cancel context.CancelFunc
+	var timeout time.Duration
+	if ts, ok := t.Deadline(); ok {
+		// Timeout is derived from test's own timeout.
+		timeout = time.Since(ts).Abs()
+		ctx, cancel = context.WithDeadline(context.Background(), ts)
+	} else {
+		timeout = time.Second * 30
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*30)
+	}
+	defer cancel()
+
 	// Trampoline args.
 	args = append(args,
 		// Always override GO_TEST_EXEC_TRAMPOLINE env set by args.
@@ -125,6 +152,7 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 		"--",
 		os.Args[0],
 		fmt.Sprintf("-test.run=^%s$", t.Name()),
+		fmt.Sprintf("-test.timeout=%s", timeout),
 	)
 
 	// Add verbose flag if test also mentions it.
@@ -137,22 +165,13 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 		args = append(args, fmt.Sprintf("--test.gocoverdir=%s", TestingCoverDir(t)))
 	}
 
-	// Set timeouts.
-	var ctx context.Context
-	var cancel context.CancelFunc
-	if ts, ok := t.Deadline(); ok {
-		ctx, cancel = context.WithDeadline(context.Background(), ts)
-	} else {
-		ctx, cancel = context.WithTimeout(context.Background(), time.Second*30)
-	}
-	defer cancel()
-
 	cmd := exec.CommandContext(ctx, "systemd-run", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	writer := NewTestLogWriter(t)
+	cmd.Stdout = writer
+	cmd.Stderr = writer
 	t.Logf("Running via : systemd-run %v", cmd.Args)
 	err := cmd.Run()
+	// Print output from command if there is an error or in verbose mode.
 	if err != nil {
 		t.Fatalf("Failed to re-exec test: %s", err)
 	}

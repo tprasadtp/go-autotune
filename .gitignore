@@ -127,8 +127,18 @@ env.*
 .tailscale-funnel/
 .tailscale-ssh/
 
-
+# Go Workspace files
 go.work
 go.work.sum
+
+# Temporary forks.
 ref/
+
+# IntelliJ Files.
 .idea/
+
+# Task metadata
+.task
+
+# Benchmarks
+benchmarks/

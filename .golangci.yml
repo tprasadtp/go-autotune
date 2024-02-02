@@ -132,16 +132,17 @@ linters-settings:
       # List of blocked modules.
       # Default: []
       modules:
+        # Use google.golang.org/protobuf.
         - github.com/golang/protobuf:
+            reason: "See https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules"
             recommendations:
               - google.golang.org/protobuf
-            reason: "See https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules"
 
         # Use stdlib or custom replacements.
         - github.com/mitchellh/go-homedir:
             reason: "Use os.UserHomeDir() from stdlib."
 
-        # go 1.20 introduced errors.Join use it.
+        # Go 1.20 introduced errors.Join use it.
         - github.com/hashicorp/go-multierror:
             reason: "Use errors.Join() from from stdlib."
         - go.uber.org/multierr:
@@ -149,62 +150,65 @@ linters-settings:
         - github.com/pkg/errors:
             reason: "Use error wrapping directive(%w) in stdlib"
 
-        # go 1.19 introduced New atomic types.
+        # Go 1.19 introduced New atomic types.
         - go.uber.org/atomic:
             reason: "Use sync/atomic from stdlib."
 
-        # go 1.20 introduced fallback roots use it.
+        # Go 1.20 introduced fallback roots use it.
         - github.com/certifi/gocertifi:
             recommendations:
-              - "golang.org/x/crypto/x509roots/fallback"
+              - golang.org/x/crypto/x509roots/fallback
         - github.com/breml/rootcerts:
             recommendations:
-              - "golang.org/x/crypto/x509roots/fallback"
+              - golang.org/x/crypto/x509roots/fallback
         - github.com/gwatts/rootcerts:
             recommendations:
-              - "golang.org/x/crypto/x509roots/fallback"
+              - golang.org/x/crypto/x509roots/fallback
         - github.com/alexflint/stdroots:
             recommendations:
-              - "golang.org/x/crypto/x509roots/fallback"
+              - golang.org/x/crypto/x509roots/fallback
 
-        # Use log/slog from stdlib or github.com/tprasadtp/log wrapper
+        # Go 1.20 introduced log/slog use it or github.com/tprasadtp/log wrapper
         - github.com/hashicorp/go-hclog:
             recommendations:
-              - "log/slog"
-              - "github.com/tprasadtp/log"
+              - log/slog
+              - github.com/tprasadtp/log
         - github.com/rs/zerolog:
             recommendations:
-              - "log/slog"
-              - "github.com/tprasadtp/log"
+              - log/slog
+              - github.com/tprasadtp/log
         - github.com/sirupsen/logrus:
             recommendations:
-              - "log/slog"
-              - "github.com/tprasadtp/log"
+              - log/slog
+              - github.com/tprasadtp/log
         - go.uber.org/zap:
             recommendations:
-              - "log/slog"
-              - "github.com/tprasadtp/log"
+              - log/slog
+              - github.com/tprasadtp/log
 
         # Use github.com/tprasadtp/go-autotune
         - go.uber.org/automaxprocs:
-            reason: "Does not handle fractional CPUs well and does not support Windows."
+            reason: >-
+              Does not handle fractional CPUs well and does not support Windows.
             recommendations:
-              - "github.com/tprasadtp/go-autotune"
+              - github.com/tprasadtp/go-autotune
         - github.com/KimMachineGun/automemlimit:
-            reason: "Does not support cgroups mounted at non standard location and does not support Windows."
+            reason: >-
+              Does not support cgroups mounted at non standard location.
+              Also does not support memory.high and does not support Windows.
             recommendations:
-              - "github.com/tprasadtp/go-autotune"
+              - github.com/tprasadtp/go-autotune
 
         # Use github.com/tprasadtp/go-githubapp
         - github.com/bradleyfalzon/ghinstallation:
-            reason: "Does not support KMS backed keys or keys implementing crypto.Signer interface."
+            reason: Does not support KMS backed keys or keys implementing crypto.Signer interface.
             recommendations:
-              - "github.com/tprasadtp/go-githubapp"
+              - github.com/tprasadtp/go-githubapp
 
         - github.com/bradleyfalzon/ghinstallation/v2:
             reason: "Does not support KMS backed keys or keys implementing crypto.Signer interface."
             recommendations:
-              - "github.com/tprasadtp/go-githubapp"
+              - github.com/tprasadtp/go-githubapp
 
   forbidigo:
     # Forbid the following identifiers (list of regexp).
@@ -231,6 +235,11 @@ linters-settings:
     # This makes it possible to handle import renaming and forbid struct fields and methods.
     # Default: false
     analyze-types: true
+
+  gofumpt:
+    # See https://github.com/golangci/golangci-lint/issues/4004
+    # module-path: github.com/tprasadtp/go-autotune
+    extra-rules: false
 
   govet:
     # Enable all analyzers.
@@ -369,7 +378,7 @@ linters:
     - gocritic # provides diagnostics that check for bugs, performance and style issues
     - gocyclo # computes and checks the cyclomatic complexity of functions
     - godot # checks if comments end in a period
-    - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
+    - gofumpt # checks whether code was gofumpt-ed
     - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     - gomodguard # allow and block lists linter for direct Go module dependencies.
     - goprintffuncname # checks that printf-like functions are named with f at the end
@@ -424,7 +433,7 @@ linters:
     #- forcetypeassert # [replaced by errcheck] finds forced type assertions
     #- goerr113 # [too strict] checks the errors handling expressions
     #- gofmt # [replaced by goimports] checks whether code was gofmt-ed
-    #- gofumpt # [replaced by goimports, gofumports is not available yet] checks whether code was gofumpt-ed
+    #- goimports # [replaced by gofumpt] in addition to fixing imports, goimports also formats your code in the same style as gofmt
     #- grouper # analyzes expression groups
     #- maintidx # measures the maintainability index of each function
     #- misspell # [useless] finds commonly misspelled English words in comments

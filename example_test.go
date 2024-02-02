@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+// SPDX-License-Identifier: MIT
+
 package autotune_test
 
 import (
@@ -5,7 +8,7 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	_ "github.com/tprasadtp/go-autotune" // Importing this adjusts GOMAXPROCS & GOMEMLIMIT
+	_ "github.com/tprasadtp/go-autotune" // Blank import adjusts GOMAXPROCS & GOMEMLIMIT
 )
 
 // To render a whole-file example, a package-level declaration is required.
