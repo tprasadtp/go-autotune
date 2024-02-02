@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+
+name: release
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "**"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: release --clean --fail-fast
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
