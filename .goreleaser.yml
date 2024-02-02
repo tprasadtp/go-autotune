@@ -1,0 +1,86 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+#
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+project_name: go-autotune
+
+snapshot:
+  # This should be semver otherwise triggers https://github.com/goreleaser/goreleaser/issues/2081
+  name_template: "{{ .Version }}-SNAPSHOT-{{.ShortCommit}}"
+
+builds:
+  # If true, skip the build.
+  # Useful for library projects.
+  - skip: true
+
+changelog:
+  sort: asc
+  # Group commits messages by given regex and title.
+  # Order value defines the order of the groups.
+  # Providing no regex means all commits will be grouped under the default group.
+  #
+  # Matches are performed against the first line of the commit message only,
+  # prefixed with the commit SHA1, usually in the form of
+  # `<abbrev-commit>[:] <title-commit>`.
+  # Groups are disabled when using github-native, as it already groups things by itself.
+  # Regex use RE2 syntax as defined here: https://github.com/google/re2/wiki/Syntax.
+  groups:
+    - title: "🍒 Features & Enhancements"
+      regexp: '^.*?(feat|feature|features)(\([[:word:]]+\))??!?:.+$'
+      order: 1
+
+    - title: "🚀 Performance Updates"
+      regexp: '^.*?(perf|performance)(\([[:word:]]+\))??!?:.+$'
+      order: 2
+
+    - title: "🐞 Bug Fixes"
+      regexp: '^.*?(bug|fix|bugfix|bug\-fix)(\([[:word:]]+\))??!?:.+$'
+      order: 3
+
+    - title: "🌸 Dependency updates"
+      regexp: '^.*?(deps|dep)(\([[:word:]]+\))??!?:.+$'
+      order: 4
+
+    - title: "🧪 Testing"
+      regexp: '^.*?(test|testing)(\([[:word:]]+\))??!?:.+$'
+      order: 5
+
+    - title: "📖 Documentation"
+      regexp: '^.*?(documentation|docs(s)?)(\([[:word:]]+\))??!?:.+$'
+      order: 8
+  filters:
+    exclude:
+
+release:
+  # If set to auto, will mark the release as not ready for production
+  # in case there is an indicator for this in the tag e.g. v1.0.0-rc1
+  # If set to true, will mark the release as not ready for production.
+  # Default is false.
+  prerelease: auto
+
+  # If set to true, will not auto-publish the release.
+  draft: false
+
+  # Whether to remove existing draft releases with the same name before creating
+  # a new one. Only effective if `draft` is set to true.
+  replace_existing_draft: true
+
+  # Useful if you want to delay the creation of the tag in the remote.
+  # You can create the tag locally, but not push it, and run GoReleaser.
+  # It'll then set the `target_commitish` portion of the GitHub release to the
+  # value of this field.
+  # Only works on GitHub.
+  #
+  # Default: ''
+  target_commitish: "{{ .Commit }}"
+
+  # What to do with the release notes in case there the release already exists.
+  #
+  # Valid options are:
+  # - `keep-existing`: keep the existing notes
+  # - `append`: append the current release notes to the existing notes
+  # - `prepend`: prepend the current release notes to the existing notes
+  # - `replace`: replace existing notes
+  #
+  # Default is `keep-existing`.
+  mode: replace
