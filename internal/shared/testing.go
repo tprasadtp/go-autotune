@@ -5,6 +5,7 @@ package shared
 
 import (
 	"flag"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,8 +13,10 @@ import (
 	"testing"
 )
 
-var testVerboseCache bool
-var testVerboseOnce sync.Once
+var (
+	testVerboseCache bool
+	testVerboseOnce  sync.Once
+)
 
 // TestingIsVerbose returns true if test.v flag is set.
 func TestingIsVerbose() bool {
@@ -28,11 +31,14 @@ func TestingIsVerbose() bool {
 	return testVerboseCache
 }
 
-var goCoverDirCache string
-var testCoverDirOnce sync.Once
+var (
+	goCoverDirCache  string
+	testCoverDirOnce sync.Once
+)
 
 // TestingCoverDir coverage data directory. Returns empty if coverage is not
 // enabled or if test.gocoverdir flag or GOCOVERDIR env variable is not specified.
+// because tests can enable this globally, it is always resolved to absolute path.
 //
 // This uses Undocumented/Unexported test flag: -test.gocoverdir.
 // https://github.com/golang/go/issues/51430#issuecomment-1344711300
@@ -44,12 +50,12 @@ func TestingCoverDir(t *testing.T) string {
 		}
 
 		var goCoverDir string
-		var gocoverdirFlag = flag.Lookup("test.gocoverdir")
+		gocoverdirFlag := flag.Lookup("test.gocoverdir")
 		if goCoverDir == "" && gocoverdirFlag != nil {
 			goCoverDir = gocoverdirFlag.Value.String()
 		}
 
-		var goCoverDirEnv = strings.TrimSpace(os.Getenv("GOCOVERDIR"))
+		goCoverDirEnv := strings.TrimSpace(os.Getenv("GOCOVERDIR"))
 		if goCoverDir == "" && goCoverDirEnv != "" {
 			goCoverDir = goCoverDirEnv
 		}
@@ -59,7 +65,6 @@ func TestingCoverDir(t *testing.T) string {
 			goCoverDirCache = goCoverDir
 		}
 	})
-	t.Helper()
 
 	if goCoverDirCache == "" {
 		return ""
@@ -72,4 +77,29 @@ func TestingCoverDir(t *testing.T) string {
 			goCoverDirCache, err)
 	}
 	return goCoverDirAbs
+}
+
+// Compile time check to ensure types implement required interfaces.
+var (
+	_ io.Writer = (*testLogWriter)(nil)
+)
+
+type testLogWriter struct {
+	t testing.TB
+}
+
+// NewTestLogWriter returns an [io.Writer], which writes to
+// Log method of [testing.TB]. If tb is nil it panics.
+func NewTestLogWriter(tb testing.TB) io.Writer {
+	if tb == nil {
+		panic("NewTestLogWriter: t is nil")
+	}
+	return &testLogWriter{
+		t: tb,
+	}
+}
+
+func (w *testLogWriter) Write(b []byte) (int, error) {
+	w.t.Logf("%s", b)
+	return len(b), nil
 }

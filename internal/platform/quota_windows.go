@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"unsafe"
 
+	"github.com/tprasadtp/go-autotune/internal/shared"
 	"golang.org/x/sys/windows"
 )
 
@@ -17,24 +18,9 @@ func isFlagSet(ref, value uint32) bool {
 	return (ref & value) == ref
 }
 
-// https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information
-type JOBOBJECT_CPU_RATE_CONTROL_INFORMATION struct {
-	ControlFlags uint32
-	Value        uint32
-}
-
-// https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information
-const (
-	JOB_OBJECT_CPU_RATE_CONTROL_ENABLE uint32 = 1 << iota
-	JOB_OBJECT_CPU_RATE_CONTROL_WEIGHT_BASED
-	JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP
-	JOB_OBJECT_CPU_RATE_CONTROL_NOTIFY
-	JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE
-)
-
-func getCPUQuota(options ...Option) (float64, error) {
+func getCPUQuota(_ ...Option) (float64, error) {
 	// JOBOBJECT_CPU_RATE_CONTROL_INFORMATION is not defined by golang.org/x/sys/windows.
-	cpuInfo := JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{}
+	cpuInfo := shared.JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{}
 	err := windows.QueryInformationJobObject(
 		windows.Handle(0),
 		windows.JobObjectCpuRateControlInformation,
@@ -49,11 +35,11 @@ func getCPUQuota(options ...Option) (float64, error) {
 	// Check if CPU quota is defined.
 	// JOB_OBJECT_CPU_RATE_CONTROL_ENABLE is set if the job's CPU rate to be controlled
 	// based on weight or hard cap.
-	if isFlagSet(JOB_OBJECT_CPU_RATE_CONTROL_ENABLE, cpuInfo.ControlFlags) {
+	if isFlagSet(shared.JOB_OBJECT_CPU_RATE_CONTROL_ENABLE, cpuInfo.ControlFlags) {
 		// The job's CPU rate is a hard limit. After the job reaches its CPU cycle
 		// limit for the current scheduling interval, no threads associated with the
 		// job will run until the next interval.
-		if isFlagSet(JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, cpuInfo.ControlFlags) {
+		if isFlagSet(shared.JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, cpuInfo.ControlFlags) {
 			// Portion of processor cycles that the threads in a job object can use
 			// during each scheduling interval, as the number of cycles per
 			// 10,000 cycles. Unlike linux this is specified for all cores on the system.
@@ -64,7 +50,7 @@ func getCPUQuota(options ...Option) (float64, error) {
 }
 
 //nolint:nonamedreturns // for docs.
-func getMemoryQuota(options ...Option) (max, high int64, err error) {
+func getMemoryQuota(_ ...Option) (max, high int64, err error) {
 	info := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}
 	err = windows.QueryInformationJobObject(
 		windows.Handle(0),
@@ -73,7 +59,6 @@ func getMemoryQuota(options ...Option) (max, high int64, err error) {
 		uint32(unsafe.Sizeof(info)),
 		nil,
 	)
-
 	if err != nil {
 		return 0, 0, fmt.Errorf("platform(windows): failed get to memory quota: %w", err)
 	}

@@ -62,6 +62,7 @@ func TestGetQuota_NoQuota(t *testing.T) {
 		}
 	})
 }
+
 func TestGetQuota_JobMemoryLimit(t *testing.T) {
 	shared.WindowsRun(t, 0, 3*shared.GiByte, 0, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()

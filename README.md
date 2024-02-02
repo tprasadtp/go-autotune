@@ -70,15 +70,16 @@ linters-settings:
       modules:
         # <snip other modules>
         - go.uber.org/automaxprocs:
-            reason: "Does not handle fractional CPUs well and does not support Windows."
+            reason: >-
+              Does not handle fractional CPUs well and does not support Windows.
             recommendations:
-              - "github.com/tprasadtp/go-autotune"
+              - github.com/tprasadtp/go-autotune
         - github.com/KimMachineGun/automemlimit:
-            reason: |
-              Does not support cgroups mounted at non standard location,
-              does not support memory.high and does not support Windows.
+            reason: >-
+              Does not support cgroups mounted at non standard location.
+              Also does not support memory.high and does not support Windows.
             recommendations:
-              - "github.com/tprasadtp/go-autotune"
+              - github.com/tprasadtp/go-autotune
 linters:
   enabled:
     # <snip other enabled linters>
@@ -90,12 +91,17 @@ linters:
 Testing on Linux requires cgroups v2 support enabled and systemd 252 or later.
 Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
 
-```console
-go test -cover ./...
-```
+- Install [task](https://taskfile.dev/installation/) if not done alrady.
+It takes care of setting up reguired temporary directories and handles platform specific
+quirks.
 
-Running _unit tests_ within containers/tasks with already applied resource limits
-is _not supported_.
+- Run tests. Set `DEBUG` environment variable to `1` to show verbose logs.
+  ```console
+  task test
+  ```
+
+  > Running _unit tests_ within containers or with already applied resource limits
+  > is _not supported_.
 
 [GOMEMLIMIT]: https://pkg.go.dev/runtime/debug#SetMemoryLimit
 [GOMAXPROCS]: https://pkg.go.dev/runtime#GOMAXPROCS

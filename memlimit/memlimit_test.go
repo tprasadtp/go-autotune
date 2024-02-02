@@ -76,7 +76,7 @@ func TestConfigure_EnvVariable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("GOMEMLIMIT", tc.env)
 			reset()
-			memlimit.Configure(memlimit.WithLogger(slog.Default()))
+			memlimit.Configure(memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))))
 			c := memlimit.Current()
 			if tc.expect != c {
 				t.Errorf("GOMEMLIMIT expected=%d, got=%d", tc.expect, c)
@@ -89,7 +89,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("Unsupported", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, 0, fmt.Errorf("test: %w", syscall.ENOTSUP)
 			}),
@@ -102,7 +102,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("WithMemoryQuotaFunc-Errors", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, 0, fmt.Errorf("test: unknown error")
 			}),
@@ -116,7 +116,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("FixedValue", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, 50 * shared.GiByte, nil
 			}),
@@ -130,7 +130,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("WithMaxReservePercent-50", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMaxReservePercent(50),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 10 * shared.GiByte, 0, nil
@@ -145,7 +145,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("WithMaxReservePercent-0", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMaxReservePercent(0),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 5 * shared.GiByte, 0, nil
@@ -160,7 +160,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("AlreadySet", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, math.MaxInt64, nil
 			}),
@@ -174,7 +174,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("Undefined", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, 0, nil
 			}),
@@ -190,7 +190,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 		var max int64 = 2.5 * shared.GiByte
 		var high int64 = 3 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, high, nil
 			}),
@@ -208,7 +208,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 		var max int64 = 2.5 * shared.GiByte
 		var high int64 = 3 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, high, nil
 			}),
@@ -226,7 +226,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 		var max int64 = 3 * shared.GiByte
 		var high int64 = 2.5 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, high, nil
 			}),
@@ -243,7 +243,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 		reset()
 		var max int64 = 10 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, 0, nil
 			}),
@@ -260,7 +260,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 		reset()
 		var max int64 = 3 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, 0, nil
 			}),
@@ -278,7 +278,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 		reset()
 		var max int64 = 5 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.Default()),
+			memlimit.WithLogger(slog.New(shared.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, 0, nil
 			}),

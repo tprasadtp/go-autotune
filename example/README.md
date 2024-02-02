@@ -23,7 +23,6 @@
 
 ## Linux Systemd Services
 
-
 - Build example go binary
 
   ```bash

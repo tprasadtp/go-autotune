@@ -1,6 +1,8 @@
 {
     "recommendations": [
         "golang.go",
-        "editorconfig.editorconfig"
+        "editorconfig.editorconfig",
+        "redhat.vscode-yaml",
+        "pulumi.pulumi-lsp-client"
     ]
 }
