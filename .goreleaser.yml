@@ -6,7 +6,7 @@ project_name: go-autotune
 
 snapshot:
   # This should be semver otherwise triggers https://github.com/goreleaser/goreleaser/issues/2081
-  name_template: "{{ .Version }}-SNAPSHOT-{{.ShortCommit}}"
+  name_template: "{{ .Version }}-{{.ShortCommit}}-snapshot"
 
 builds:
   # If true, skip the build.
@@ -25,7 +25,7 @@ changelog:
   # Groups are disabled when using github-native, as it already groups things by itself.
   # Regex use RE2 syntax as defined here: https://github.com/google/re2/wiki/Syntax.
   groups:
-    - title: "🍒 Features & Enhancements"
+    - title: "🎉 Features & Enhancements"
       regexp: '^.*?(feat|feature|features)(\([[:word:]]+\))??!?:.+$'
       order: 1
 
@@ -37,21 +37,24 @@ changelog:
       regexp: '^.*?(bug|fix|bugfix|bug\-fix)(\([[:word:]]+\))??!?:.+$'
       order: 3
 
-    - title: "🌸 Dependency updates"
+    - title: "🌲 Dependency updates"
       regexp: '^.*?(deps|dep)(\([[:word:]]+\))??!?:.+$'
       order: 4
 
     - title: "🧪 Testing"
-      regexp: '^.*?(test|testing)(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*?(test(s)?|testing|e2e)(\([[:word:]]+\))??!?:.+$'
       order: 5
 
     - title: "📖 Documentation"
-      regexp: '^.*?(documentation|docs(s)?)(\([[:word:]]+\))??!?:.+$'
+      regexp: '^.*?(documentation|doc(s)?)(\([[:word:]]+\))??!?:.+$'
       order: 8
   filters:
     exclude:
 
 release:
+  # Default: '{{.Tag}}'
+  name_template: "{{.Tag}}"
+
   # If set to auto, will mark the release as not ready for production
   # in case there is an indicator for this in the tag e.g. v1.0.0-rc1
   # If set to true, will mark the release as not ready for production.

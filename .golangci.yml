@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse.
 # SPDX-License-Identifier: MIT
-
+#
+# yaml-language-server: $schema=https://json.schemastore.org/golangci-lint.json
 run:
   # Timeout for analysis, e.g. 30s, 5m.
   # Default: 1m
@@ -236,11 +237,6 @@ linters-settings:
     # Default: false
     analyze-types: true
 
-  gofumpt:
-    # See https://github.com/golangci/golangci-lint/issues/4004
-    # module-path: github.com/tprasadtp/go-autotune
-    extra-rules: false
-
   govet:
     # Enable all analyzers.
     # Default: false
@@ -309,7 +305,7 @@ linters-settings:
     static-msg: true
     # Enforce using constants instead of raw keys.
     # Default: false
-    no-raw-keys: true
+    no-raw-keys: false
     # Enforce a single key naming convention.
     # Values: snake, kebab, camel, pascal
     # Default: ""
@@ -378,7 +374,7 @@ linters:
     - gocritic # provides diagnostics that check for bugs, performance and style issues
     - gocyclo # computes and checks the cyclomatic complexity of functions
     - godot # checks if comments end in a period
-    - gofumpt # checks whether code was gofumpt-ed
+    - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
     - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     - gomodguard # allow and block lists linter for direct Go module dependencies.
     - goprintffuncname # checks that printf-like functions are named with f at the end
@@ -433,7 +429,7 @@ linters:
     #- forcetypeassert # [replaced by errcheck] finds forced type assertions
     #- goerr113 # [too strict] checks the errors handling expressions
     #- gofmt # [replaced by goimports] checks whether code was gofmt-ed
-    #- goimports # [replaced by gofumpt] in addition to fixing imports, goimports also formats your code in the same style as gofmt
+    #- gofumpt # [replaced by goimports, gofumports is not available yet] checks whether code was gofumpt-ed
     #- grouper # analyzes expression groups
     #- maintidx # measures the maintainability index of each function
     #- misspell # [useless] finds commonly misspelled English words in comments
@@ -508,14 +504,17 @@ issues:
         - gocyclo
         - gocognit
         - wrapcheck
+        - sloglint
 
     # Disable some linters for ad-hoc scripts and example scripts.
     - path: '(example|generate)\.go'
       linters:
         - wrapcheck
         - forbidigo
+        - sloglint
 
     # Disable go-header checks for example files
     - path: 'example_(.*)\.go'
       linters:
         - goheader
+        - sloglint

@@ -1,8 +1,10 @@
 # go-autotune
 
 [![go-reference](https://img.shields.io/badge/go-reference-00758D?logo=go&logoColor=white)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
+[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-autotune?logo=go&logoColor=white&color=00758D&label=go)](https://github.com/tprasadtp/go-autotune/blob/master/go.mod)
 [![test](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml)
 [![lint](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml)
+[![release](https://github.com/tprasadtp/go-autotune/actions/workflows/release.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/release.yml)
 [![license](https://img.shields.io/github/license/tprasadtp/go-autotune)](https://github.com/tprasadtp/go-autotune/blob/master/LICENSE)
 [![latest-version](https://img.shields.io/github/v/tag/tprasadtp/go-autotune?color=7f50a6&label=release&logo=semver&sort=semver)](https://github.com/tprasadtp/go-autotune/releases)
 
@@ -91,8 +93,8 @@ linters:
 Testing on Linux requires cgroups v2 support enabled and systemd 252 or later.
 Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
 
-- Install [task](https://taskfile.dev/installation/) if not done alrady.
-It takes care of setting up reguired temporary directories and handles platform specific
+- Install [task](https://taskfile.dev/installation/) if not done already.
+It takes care of setting up required temporary directories and handles platform specific
 quirks.
 
 - Run tests. Set `DEBUG` environment variable to `1` to show verbose logs.
@@ -100,8 +102,8 @@ quirks.
   task test
   ```
 
-  > Running _unit tests_ within containers or with already applied resource limits
-  > is _not supported_.
+Running _unit tests_ within containers or with already applied resource limits
+is _not supported_.
 
 [GOMEMLIMIT]: https://pkg.go.dev/runtime/debug#SetMemoryLimit
 [GOMAXPROCS]: https://pkg.go.dev/runtime#GOMAXPROCS

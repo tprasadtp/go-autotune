@@ -1,0 +1,6 @@
+# Treat all files in the Go repo as binary, with no git magic updating
+# line endings. This produces predictable results in different environments.
+#
+# See  - https://git-scm.com/docs/gitattributes#_text
+# Also - https://golang.org/issue/9281.
+* -text

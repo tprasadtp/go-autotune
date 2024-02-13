@@ -10,21 +10,17 @@ updates:
       - "bot/dependabot"
       - "deps/actions"
     commit-message:
-      prefix: "deps(actions):"
+      prefix: "ci(deps):"
     pull-request-branch-name:
       separator: "-"
     schedule:
       interval: "weekly"
       day: "saturday"
     groups:
-      actions:
+      artifacts:
         patterns:
-          - "actions/*"
-        exclude-patterns:
-          - "actions/create-github-app-token"
-      linters:
-        patterns:
-          - "golangci/golangci-lint-action"
+          - "actions/upload-artifact*"
+          - "actions/download-artifact*"
 
   # For go, because of MVS, only security updates are relevant.
   # Ignore version updates as this package is a library.

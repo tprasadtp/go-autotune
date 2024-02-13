@@ -3,6 +3,5 @@
         "golang.go",
         "editorconfig.editorconfig",
         "redhat.vscode-yaml",
-        "pulumi.pulumi-lsp-client"
     ]
 }
