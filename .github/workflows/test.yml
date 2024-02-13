@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: test
 on:
   push:
@@ -5,22 +9,32 @@ on:
       - "**"
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
       fail-fast: false
       matrix:
         go:
-          - "1.21"
-          # - "1.22rc2"
+          - stable
+          - oldstable
         os:
           - macos-latest
-          - ubuntu-latest
-          - windows-latest
+          - ubuntu-22.04
+          - windows-2022
+          - windows-2019
+        exclude:
+          - os: macos-latest
+            go: oldstable
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Go ${{ matrix.go }}
         uses: actions/setup-go@v5
@@ -31,18 +45,72 @@ jobs:
         run: go install github.com/go-task/task/v3/cmd/task@latest
 
       - name: Test
-        run: task test
+        run: task --verbose test
         env:
-          CGO_ENABLED: "0"
+          DEBUG: ${{ contains(github.event.head_commit.message, '/test-debug-ci') && '1' || '' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}-${{ matrix.go }}
+          path: .gocover
+          retention-days: 30
+
+      - name: Coverage View Percent
+        # - Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
+        #   for flag with dot '.' (like test.v) as PowerShell mangles it.
+        #   See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
+        run: go tool covdata percent -i .gocover
 
       - name: Coverage Create Profile
         # Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
         # for flag with dot '.' (like test.v) as PowerShell mangles it.
-        # See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988 for more context.
+        # See - https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
         run: go tool covdata textfmt -i .gocover -o .gocover/coverage.out
 
       - name: Coverage View Profile
+        # - Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
+        #   for flag with dot '.' (like test.v) as PowerShell mangles it.
+        #   See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
+        run: go tool cover -func .gocover/coverage.out
+
+
+  # Generate coverage profile from all coverage data.
+  coverage:
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Download and merge coverage data
+        uses: actions/download-artifact@v4
+        with:
+          path: .gocover
+          pattern: coverage-*
+          merge-multiple: true
+
+      - name: Coverage View Percent
+        # - Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
+        #   for flag with dot '.' (like test.v) as PowerShell mangles it.
+        #   See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
+        run: go tool covdata percent -i .gocover
+
+      - name: Coverage Create Profile
         # Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
         # for flag with dot '.' (like test.v) as PowerShell mangles it.
-        # See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988 for more context.
+        # See - https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
+        run: go tool covdata textfmt -i .gocover -o .gocover/coverage.out
+
+      - name: Coverage View Profile
+        # - Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
+        #   for flag with dot '.' (like test.v) as PowerShell mangles it.
+        #   See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
         run: go tool cover -func .gocover/coverage.out

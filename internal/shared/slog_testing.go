@@ -11,15 +11,17 @@ import (
 	"testing"
 )
 
+var _ slog.Handler = (*TestingHandler)(nil)
+
 type TestingHandler struct {
 	t     testing.TB
 	attrs []slog.Attr
 }
 
-// NewTestSlogHandler returns an [slog.Handler], which writes to
-// Log method of [testing.TB]. If tb is nil it panics.
+// NewTestingHandler returns a [slog.Handler], which writes to
+// Log method of [testing.TB]. If tb is nil, it panics.
 //
-// This is neither fast not efficient, but its sufficient for tests.
+// This is neither fast not efficient, but it's sufficient for tests.
 // This does not implement WithGroup method.
 func NewTestingHandler(tb testing.TB) slog.Handler {
 	if tb == nil {

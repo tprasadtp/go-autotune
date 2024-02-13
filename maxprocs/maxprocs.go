@@ -101,7 +101,7 @@ func Configure(opts ...Option) {
 			}
 		} else {
 			cfg.Logger.LogAttrs(ctx, slog.LevelError,
-				"Ignoring invalid GOMAXPROCS environment variable",
+				"Invalid GOMAXPROCS environment variable",
 				slog.String("GOMAXPROCS", env))
 		}
 		return

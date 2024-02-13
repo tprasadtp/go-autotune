@@ -6,22 +6,77 @@
 package shared
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"math"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"testing"
+	"time"
 	"unicode/utf16"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
-// WindowsRun runs test function fn via windows jobobject API.
+var (
+	kernel32          = windows.NewLazySystemDLL("kernel32.dll")
+	procPeekNamedPipe = kernel32.NewProc("PeekNamedPipe")
+)
+
+func PeekNamedPipe(h windows.Handle, buf []byte, lpBytesRead, lpTotalBytesAvail, lpBytesLeftThisMessage *uint32) error {
+	var _p0 *byte
+	if len(buf) > 0 {
+		_p0 = &buf[0]
+	}
+
+	r1, _, e1 := syscall.SyscallN(
+		procPeekNamedPipe.Addr(),
+		uintptr(h),
+		uintptr(unsafe.Pointer(_p0)),
+		uintptr(len(buf)),
+		uintptr(unsafe.Pointer(lpBytesRead)),
+		uintptr(unsafe.Pointer(lpTotalBytesAvail)),
+		uintptr(unsafe.Pointer(lpBytesLeftThisMessage)),
+	)
+	if r1 == 0 {
+		return e1
+	}
+	return nil
+}
+
+func ReadPipe(h windows.Handle) ([]byte, error) {
+	var pending uint32
+	var err error
+
+	// Peek a named pipe and check if it has any pending bytes.
+	// Do not copy anything to buffer yet.
+	err = PeekNamedPipe(h, nil, nil, &pending, nil)
+	if err != nil && !errors.Is(err, windows.ERROR_SUCCESS) {
+		return nil, fmt.Errorf("PeekNamedPipe: %w", err)
+	}
+
+	// If there are pending bytes, read via ReadFile.
+	if pending > 0 {
+		buf := make([]byte, pending)
+		var n uint32
+		err = windows.ReadFile(h, buf, &n, nil)
+		if err != nil {
+			return nil, fmt.Errorf("ReadFile: %w", err)
+		}
+		return buf, nil
+	}
+	return nil, nil
+}
+
+// WindowsRun runs test function fn via Windows jobobject API.
 //
-//nolint:funlen
+//nolint:funlen,gocognit // ignore
 func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv string, fn func(t *testing.T)) {
 	if fn == nil {
 		t.Fatalf("fn function is nil")
@@ -46,7 +101,22 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		envv = append(envv, fmt.Sprintf("GOAUTOTUNE=%s", autoTuneEnv))
 	}
 
-	var process *os.Process
+	// Set timeouts.
+	//
+	// Ideally we would set per set timeouts, but they are not available yet.
+	// See https://github.com/golang/go/issues/48157 for more info.
+	var ctx context.Context
+	var cancel context.CancelFunc
+	var timeout time.Duration
+	if ts, ok := t.Deadline(); ok {
+		// Timeout is derived from test's own timeout.
+		timeout = time.Since(ts).Abs()
+		ctx, cancel = context.WithDeadline(context.Background(), ts)
+	} else {
+		timeout = time.Second * 30
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*30)
+	}
+	defer cancel()
 
 	// Trampoline exe
 	exe, err := os.Executable()
@@ -58,11 +128,12 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	trampolineArgs := []string{
 		strconv.Quote(exe),
 		fmt.Sprintf(`--test.run=^%s$`, t.Name()),
+		fmt.Sprintf("-test.timeout=%s", timeout),
 	}
 
-	// Add verbose flag if test also mentions it.
+	// Add verbose flag if required.
 	if TestingIsVerbose() {
-		trampolineArgs = append(trampolineArgs, "--test.v=true")
+		trampolineArgs = append(trampolineArgs, "--test.v")
 	}
 
 	// The return value will be empty if test coverage is not enabled.
@@ -77,7 +148,10 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	}
 
 	// CreateJobObject
-	hJobObject, err := windows.CreateJobObject(newSecurityAttributes(), jobObjectName)
+	hJobObject, err := windows.CreateJobObject(
+		NewSecurityAttributes(false),
+		jobObjectName,
+	)
 	if err != nil {
 		t.Fatalf("CreateJobObject: %s", err)
 	}
@@ -142,9 +216,9 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		}
 	}
 
-	// // Use PROC_THREAD_ATTRIBUTE_JOB_LIST to ensure race-free way on starting
-	// // process within a JOBOBJECT.
-	procThreadAttrs, err := windows.NewProcThreadAttributeList(3)
+	// Use PROC_THREAD_ATTRIBUTE_JOB_LIST to ensure
+	// race-free way on starting a process within a JOBOBJECT.
+	procThreadAttrs, err := windows.NewProcThreadAttributeList(1)
 	if err != nil {
 		t.Fatalf("NewProcThreadAttributeList(Task): %s", err)
 	}
@@ -158,16 +232,51 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		t.Fatalf("UpdateProcThreadAttribute(Task): %s", err)
 	}
 
+	// Create pipes for stdout and stderr
+	var stdoutWriteHandle windows.Handle
+	var stdoutReadHandle windows.Handle
+	err = windows.CreatePipe(
+		&stdoutReadHandle,
+		&stdoutWriteHandle,
+		NewSecurityAttributes(true),
+		0,
+	)
+	if err != nil {
+		t.Fatalf("Failed to create pipe: %s", err)
+	}
+	t.Cleanup(func() {
+		_ = windows.CloseHandle(stdoutReadHandle)
+		_ = windows.CloseHandle(stdoutWriteHandle)
+	})
+
+	var stderrWriteHandle windows.Handle
+	var stderrReadHandle windows.Handle
+	err = windows.CreatePipe(
+		&stderrReadHandle,
+		&stderrWriteHandle,
+		NewSecurityAttributes(true),
+		0,
+	)
+	if err != nil {
+		t.Fatalf("Failed to create pipe: %s", err)
+	}
+	t.Cleanup(func() {
+		_ = windows.CloseHandle(stderrReadHandle)
+		_ = windows.CloseHandle(stderrWriteHandle)
+	})
+
 	// Extended startup info.
 	startupInfoEx := windows.StartupInfoEx{}
 	startupInfoEx.Cb = uint32(unsafe.Sizeof(startupInfoEx))
-	// startupInfoEx.Flags = windows.STARTF_USESTDHANDLES
+	startupInfoEx.Flags = windows.STARTF_USESTDHANDLES
+	startupInfoEx.StdOutput = stdoutWriteHandle
+	startupInfoEx.StdErr = stderrWriteHandle
 	startupInfoEx.ProcThreadAttributeList = procThreadAttrs.List() //nolint:govet // unusedwrite: ProcThreadAttributeList will be read by syscall
 	processInfo := &windows.ProcessInformation{}
 
 	// Build args ptr
-	argsPtr, err := windows.UTF16PtrFromString(strings.Join(trampolineArgs, " "))
 	// argsPtr, err := windows.UTF16PtrFromString(`"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" dir env:`)
+	argsPtr, err := windows.UTF16PtrFromString(strings.Join(trampolineArgs, " "))
 	if err != nil {
 		t.Fatalf("UTF16PtrFromString(Args): %s", err)
 	}
@@ -178,7 +287,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		argsPtr,
 		nil,
 		nil,
-		false,
+		true,
 		windows.EXTENDED_STARTUPINFO_PRESENT|windows.CREATE_UNICODE_ENVIRONMENT,
 		createEnvBlock(addCriticalEnv((envv))),
 		nil,
@@ -195,7 +304,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	})
 
 	// Re-use *os.Process to avoid reinventing the wheel here.
-	process, err = os.FindProcess(int(processInfo.ProcessId))
+	process, err := os.FindProcess(int(processInfo.ProcessId))
 	if err != nil {
 		// If we can't find the process via os.FindProcess,
 		// terminate the process as that's what we rely on for all further operations on the
@@ -210,31 +319,86 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		t.Fatalf("Process did not start")
 	}
 
+	var wg sync.WaitGroup
+	pipeOutputLoggerFunc := func(l *OutputLogger, ctx context.Context, h windows.Handle, prefix string) {
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				t.Logf("Stopping reader %s", prefix)
+				return
+
+			default:
+				buf, err := ReadPipe(h)
+				if err != nil {
+					l.Errorf("Failed to read from pipe(%s): %s", prefix, err)
+					return
+				}
+				if len(buf) > 0 {
+					l.LogOutput(buf)
+				}
+				// Avoid CPU bounds, as anonymous pipes do not support overlapped i/o.
+				//nolint:forbidigo //ignore
+				time.Sleep(time.Millisecond * 10)
+			}
+		}
+	}
+
+	wg.Add(1)
+	lStdOut := NewOutputLogger(t, "stdout")
+	go pipeOutputLoggerFunc(lStdOut, ctx, stdoutReadHandle, "stdout")
+	wg.Add(1)
+	lstdErr := NewOutputLogger(t, "stdout")
+	go pipeOutputLoggerFunc(lstdErr, ctx, stderrReadHandle, "stderr")
+
 	procState, err := process.Wait()
 	if err != nil {
-		t.Fatalf("Error calling Wait: %s", err)
+		t.Errorf("Error calling Wait: %s", err)
 	}
 	if !procState.Success() {
-		t.Fatalf("Trampoline returned: %d", procState.ExitCode())
+		t.Errorf("Trampoline returned: %d", procState.ExitCode())
+	}
+	// Stop reader and writer go routines.
+	cancel()
+
+	// Wait for pipe reader goroutines to complete
+	wg.Wait()
+
+	// Read any pending data from stdout and stderr pipes.
+	stdoutPending, err := ReadPipe(stdoutReadHandle)
+	if err != nil {
+		t.Logf("Failed to read pending data from stdout pipe: %s", err)
+	}
+	if len(stdoutPending) > 0 {
+		lStdOut.LogOutput(stdoutPending)
+	}
+
+	stdErrPending, err := ReadPipe(stderrReadHandle)
+	if err != nil {
+		t.Logf("Failed to read pending data from stdout pipe: %s", err)
+	}
+	if len(stdErrPending) > 0 {
+		lStdOut.LogOutput(stdErrPending)
 	}
 }
 
-// newSecurityAttributes creates a SECURITY_ATTRIBUTES structure, that specifies the
+// NewSecurityAttributes creates a SECURITY_ATTRIBUTES structure, that specifies the
 // security descriptor for the job object and determines that child
-// processes can not inherit the handle.
+// processes cannot inherit the handle.
 //
 // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa379560(v=vs.85)
-func newSecurityAttributes() *windows.SecurityAttributes {
+func NewSecurityAttributes(inherit bool) *windows.SecurityAttributes {
 	var sa windows.SecurityAttributes
 	sa.Length = uint32(unsafe.Sizeof(sa))
-	sa.InheritHandle = 0
+	if inherit {
+		sa.InheritHandle = 1
+	}
 	return &sa
 }
 
 // createEnvBlock converts an array of environment strings into
 // the representation required by CreateProcess: a sequence of NUL
 // terminated strings followed by a nil.
-// Last bytes are two UCS-2 NULs, or four NUL bytes.
 func createEnvBlock(envv []string) *uint16 {
 	if len(envv) == 0 {
 		return &utf16.Encode([]rune("\x00\x00"))[0]

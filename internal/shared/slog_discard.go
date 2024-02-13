@@ -37,7 +37,7 @@ func (d DiscardHandler) WithAttrs(_ []slog.Attr) slog.Handler {
 	return d
 }
 
-// WithAttrs always discards the group provided.
+// WithGroup WithAttrs always discards the group provided.
 func (d DiscardHandler) WithGroup(_ string) slog.Handler {
 	return d
 }
