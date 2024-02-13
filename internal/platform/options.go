@@ -3,20 +3,12 @@
 
 package platform
 
-type config struct {
-	CgroupInterfacePath string
-	ProcfsPath          string
-}
-
-type optionFunc struct {
-	fn func(*config)
-}
-
 // Option to apply.
 type Option interface {
 	apply(c *config)
 }
 
-func (opt *optionFunc) apply(f *config) {
-	opt.fn(f)
+type config struct {
+	CgroupInterfacePath string
+	ProcfsPath          string
 }

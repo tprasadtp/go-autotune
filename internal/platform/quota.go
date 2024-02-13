@@ -4,7 +4,7 @@
 package platform
 
 // GetMemoryQuota returns memory quotas in bytes for the current process.
-//   - For Linux this reads inforrmation cgroups v2 interface.
+//   - For Linux this reads information cgroups v2 interface.
 //   - For Windows this uses [QueryInformationJobObject] API.
 //   - For other platforms this always returns nil, [errors.ErrUnsupported].
 //
@@ -15,8 +15,8 @@ func GetMemoryQuota(options ...Option) (max, high int64, err error) {
 	return getMemoryQuota(options...)
 }
 
-// GetQuota returns CPU quotas set on the current process.
-//   - For Linux this reads inforrmation cgroups v2 interface.
+// GetCPUQuota returns CPU quotas set on the current process.
+//   - For Linux this reads information cgroups v2 interface.
 //   - For Windows this uses [QueryInformationJobObject] API.
 //   - For other platforms this always returns nil, [errors.ErrUnsupported].
 //

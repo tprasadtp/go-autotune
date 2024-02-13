@@ -11,11 +11,11 @@ import (
 	"runtime"
 )
 
-func getCPUQuota(options ...Option) (float64, error) {
+func getCPUQuota(_ ...Option) (float64, error) {
 	return 0, fmt.Errorf("platform: unsupported platform(%s): %w", runtime.GOOS, errors.ErrUnsupported)
 }
 
 //nolint:nonamedreturns // for docs.
-func getMemoryQuota(options ...Option) (max, high int64, err error) {
+func getMemoryQuota(_ ...Option) (max, high int64, err error) {
 	return 0, 0, fmt.Errorf("platform: unsupported platform(%s): %w", runtime.GOOS, errors.ErrUnsupported)
 }

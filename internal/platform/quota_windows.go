@@ -6,6 +6,7 @@
 package platform
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"unsafe"
@@ -19,7 +20,6 @@ func isFlagSet(ref, value uint32) bool {
 }
 
 func getCPUQuota(_ ...Option) (float64, error) {
-	// JOBOBJECT_CPU_RATE_CONTROL_INFORMATION is not defined by golang.org/x/sys/windows.
 	cpuInfo := shared.JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{}
 	err := windows.QueryInformationJobObject(
 		windows.Handle(0),
@@ -28,7 +28,7 @@ func getCPUQuota(_ ...Option) (float64, error) {
 		uint32(unsafe.Sizeof(cpuInfo)),
 		nil,
 	)
-	if err != nil {
+	if err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
 		return 0, fmt.Errorf("platform(windows): failed to get cpu quota: %w", err)
 	}
 
@@ -42,7 +42,7 @@ func getCPUQuota(_ ...Option) (float64, error) {
 		if isFlagSet(shared.JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, cpuInfo.ControlFlags) {
 			// Portion of processor cycles that the threads in a job object can use
 			// during each scheduling interval, as the number of cycles per
-			// 10,000 cycles. Unlike linux this is specified for all cores on the system.
+			// 10,000 cycles. Unlike Linux, this is specified for all cores on the system.
 			return float64(cpuInfo.Value) / 10000 * float64(runtime.NumCPU()), nil
 		}
 	}
@@ -59,13 +59,13 @@ func getMemoryQuota(_ ...Option) (max, high int64, err error) {
 		uint32(unsafe.Sizeof(info)),
 		nil,
 	)
-	if err != nil {
+	if err != nil && !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
 		return 0, 0, fmt.Errorf("platform(windows): failed get to memory quota: %w", err)
 	}
 
 	// Memory can be limited by Job or process.
 	// process limit is or higher priority than Joblimit.
-	// Unlike Linux this is a hard limit, there is no feature to add soft limit.
+	// Unlike Linux, this is a hard limit; there is no feature to add soft limit.
 	switch {
 	case info.ProcessMemoryLimit > 0:
 		return int64(info.ProcessMemoryLimit), 0, nil
