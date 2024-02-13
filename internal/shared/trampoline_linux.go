@@ -155,7 +155,7 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 		fmt.Sprintf("-test.timeout=%s", timeout),
 	)
 
-	// Add verbose flag if test also mentions it.
+	// Add verbose flag if required.
 	if TestingIsVerbose() {
 		args = append(args, "-test.v=true")
 	}
@@ -166,9 +166,10 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 	}
 
 	cmd := exec.CommandContext(ctx, "systemd-run", args...)
-	writer := NewTestLogWriter(t)
-	cmd.Stdout = writer
-	cmd.Stderr = writer
+	stdoutLogger := NewOutputLogger(t, "stdout")
+	stderrLogger := NewOutputLogger(t, "stderr")
+	cmd.Stdout = stdoutLogger
+	cmd.Stderr = stderrLogger
 	t.Logf("Running via : systemd-run %v", cmd.Args)
 	err := cmd.Run()
 	// Print output from command if there is an error or in verbose mode.

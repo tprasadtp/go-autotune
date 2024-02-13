@@ -50,7 +50,7 @@ This also affects rootless docker and podman.
 
 ## Requirements (Windows)
 
-- Windows 10 20H2 or later
+- Windows 10 or later
 - Windows Server 2019 or later.
 
 ## Disabling Automatic Configuration
@@ -93,21 +93,21 @@ linters:
 Testing on Linux requires cgroups v2 support enabled and systemd 252 or later.
 Testing on Windows requires Windows 10 20H2/Windows Server 2019 or later.
 
-- Install [task](https://taskfile.dev/installation/) if not done already.
-It takes care of setting up required temporary directories and handles platform specific
-quirks.
+```console
+go test -cover -v ./...
+```
 
-- Run tests. Set `DEBUG` environment variable to `1` to show verbose logs.
-  ```console
-  task test
-  ```
+> [!IMPORTANT]
+>
+> Tests extensively use [systemd-run] and [Job Objects API] on Linux and Windows respectively.
+> Thus, running unit tests/integration tests within containers is _not supported_.
 
-Running _unit tests_ within containers or with already applied resource limits
-is _not supported_.
 
 [GOMEMLIMIT]: https://pkg.go.dev/runtime/debug#SetMemoryLimit
 [GOMAXPROCS]: https://pkg.go.dev/runtime#GOMAXPROCS
 [golangci-lint]: https://golangci-lint.run/
 [b8df7f8]: https://github.com/systemd/systemd/pull/23887
 [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
+[systemd-run]: https://www.freedesktop.org/software/systemd/man/latest/systemd-run.html
+[Job Objects API]: https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects
 [enable-cpu-delegation]: https://github.com/systemd/systemd/issues/12362#issuecomment-485762928

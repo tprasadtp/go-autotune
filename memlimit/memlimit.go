@@ -136,7 +136,7 @@ func Configure(opts ...Option) {
 			cfg.MaxReservePercent = 10
 		}
 	case cfg.MaxReservePercent > 99:
-		cfg.Logger.LogAttrs(ctx, slog.LevelError, "Ignoring invalid reserve percentage value",
+		cfg.Logger.LogAttrs(ctx, slog.LevelError, "Invalid reserve percentage value",
 			slog.Uint64("memory.reserve.percent", uint64(cfg.MaxReservePercent)),
 		)
 
