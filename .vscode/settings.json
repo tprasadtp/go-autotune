@@ -4,11 +4,6 @@
   "go.lintFlags": [
     "--fast"
   ],
-  // Use gofumpt for formating.
-  "go.useLanguageServer": true,
-  "gopls": {
-      "formatting.gofumpt": true,
-  },
   // Enable go vulnerability checks.
   "go.diagnostic.vulncheck": "Imports",
   // Default test timeouts.

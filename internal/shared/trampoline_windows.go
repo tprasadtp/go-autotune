@@ -127,7 +127,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	// Trampoline args.
 	trampolineArgs := []string{
 		strconv.Quote(exe),
-		fmt.Sprintf(`--test.run=^%s$`, t.Name()),
+		fmt.Sprintf(`-test.run=^%s$`, t.Name()),
 		fmt.Sprintf("-test.timeout=%s", timeout),
 	}
 
