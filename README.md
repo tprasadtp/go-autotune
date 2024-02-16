@@ -1,6 +1,6 @@
 # go-autotune
 
-[![go-reference](https://img.shields.io/badge/go-reference-00758D?logo=go&logoColor=white)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
+[![go-reference](https://img.shields.io/badge/godoc-reference-5272B4?logo=go&logoColor=white)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
 [![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-autotune?logo=go&logoColor=white&color=00758D&label=go)](https://github.com/tprasadtp/go-autotune/blob/master/go.mod)
 [![test](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml)
 [![lint](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml)
