@@ -22,9 +22,6 @@
 // CPU throttling, it is recommended that you use [CPU Management with static policy],
 // to ensure CPU recommendation is an integer.
 //
-// For Windows containers with hyper-v isolation, hypervisor emulates specified
-// CPU cores, thus the default value of GOMAXPROCS is optimal and need not be changed.
-//
 // # GOMEMLIMIT
 //
 // Memory limits can be soft memory limit(high), or hard memory limits(max).
@@ -82,7 +79,7 @@
 // # Disable at Runtime
 //
 // To disable automatic configuration at runtime (for compiled binaries),
-// Set "GO_AUTOTUNE" environment variable to "false" or "0".
+// Set "GOAUTOTUNE" environment variable to "false" or "0".
 //
 // [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
 // [Vertical Pod autoscaling]: https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler

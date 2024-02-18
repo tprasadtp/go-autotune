@@ -14,7 +14,7 @@ import (
 // To render a whole-file example, a package-level declaration is required.
 var _ = ""
 
-func Example() {
+func Example_simple() {
 	fmt.Printf("GOOS       : %s\n", runtime.GOOS)
 	fmt.Printf("GOMAXPROCS : %d\n", runtime.GOMAXPROCS(-1))
 	fmt.Printf("GOMEMLIMIT : %d\n", debug.SetMemoryLimit(-1))

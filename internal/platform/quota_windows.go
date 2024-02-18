@@ -19,6 +19,11 @@ func isFlagSet(ref, value uint32) bool {
 	return (ref & value) == ref
 }
 
+// getCPUQuota return CPU quota if any are defined.
+//
+// On Windows containers using Hyper-V isolation, resource controls are applied
+// both to the virtual machine as well as to the job object of the container
+// running inside the virtual machine automatically.
 func getCPUQuota(_ ...Option) (float64, error) {
 	cpuInfo := shared.JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{}
 	err := windows.QueryInformationJobObject(
@@ -49,6 +54,12 @@ func getCPUQuota(_ ...Option) (float64, error) {
 	return 0, nil
 }
 
+// getCPUQuota return CPU quota if any are defined.
+//
+// On Windows containers using Hyper-V isolation, resource controls are applied
+// both to the virtual machine as well as to the job object of the container
+// running inside the virtual machine automatically.
+//
 //nolint:nonamedreturns // for docs.
 func getMemoryQuota(_ ...Option) (max, high int64, err error) {
 	info := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}

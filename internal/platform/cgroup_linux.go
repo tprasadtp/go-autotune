@@ -130,8 +130,10 @@ func nameFromFile(path string) (string, error) {
 	}
 
 	// /proc/self/cgroup (since Linux 2.6.24)
-	// This file describes control groups to which the process with the corresponding PID belongs. The displayed information differs for cgroups version 1 and version 2 hierarchies.
-	// For each cgroup hierarchy of which the process is a member, there is one entry containing three colon-separated fields:
+	// This file describes control groups to which the process with the corresponding PID
+	// belongs. The displayed information differs for cgroups version 1 and version 2 hierarchies.
+	// For each cgroup hierarchy of which the process is a member, there is one entry containing
+	// three colon-separated fields:
 	//
 	// hierarchy-ID:controller-list:cgroup-path
 	//
@@ -139,8 +141,8 @@ func nameFromFile(path string) (string, error) {
 	//
 	// 1. For the cgroups version 2 hierarchy, this field contains the value 0.
 	// 2. For the cgroups version 2 hierarchy, this field is empty.
-	// 3. This field contains the pathname of the control group in the hierarchy to which the process belongs.
-	//    This pathname is relative to the mount point of the hierarchy.
+	// 3. This field contains the pathname of the control group in the hierarchy to which the
+	//    process belongs. This pathname is relative to the mount point of the hierarchy.
 	//
 	// https://manpages.debian.org/buster/manpages/cgroups.7.en.html
 	if !bytes.HasPrefix(contents, []byte("0::")) {
@@ -158,7 +160,6 @@ func nameFromFile(path string) (string, error) {
 // mountPointFromFile parses given mountinfo file and extracts cgroup v2 mountpoint
 // from it.
 func mountPointFromFile(mountInfo string) (string, error) {
-	// Try to open file.
 	file, err := os.Open(mountInfo)
 	if err != nil {
 		return "", fmt.Errorf("failed to open: %w", err)
@@ -213,10 +214,10 @@ func mountPointFromFile(mountInfo string) (string, error) {
 		numFields := len(fields)
 		if numFields < 10 {
 			// Should be at least 10 fields
-			return "", fmt.Errorf("parsing '%q' failed: not enough fields (%d)", text, numFields)
+			return "", fmt.Errorf("parsing '%s' failed: not enough fields (%d)", text, numFields)
 		}
 
-		// separator field
+		// Separator field
 		sepIdx := numFields - 4
 
 		// Check if type is valid
