@@ -132,7 +132,6 @@ env.*
 .tools/
 .tool/
 .tool-cache/
-.cache/
 .tunnel/
 .code-tunnel/
 .tailscale/

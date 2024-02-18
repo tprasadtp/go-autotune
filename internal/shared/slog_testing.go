@@ -37,7 +37,7 @@ func (h *TestingHandler) Enabled(context.Context, slog.Level) bool {
 }
 
 func (h *TestingHandler) WithGroup(_ string) slog.Handler {
-	panic("NewTestLogHandler: WithGroup not implemented")
+	panic("TestingHandler: WithGroup not implemented")
 }
 
 func (h *TestingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
