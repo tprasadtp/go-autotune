@@ -1,5 +1,9 @@
 # Example
 
+> [!IMPORTANT]
+>
+> This is an _example_ and is **NOT** covered by semver compatibility guarantees.
+
 ## Windows Containers
 
 - Build example go binary

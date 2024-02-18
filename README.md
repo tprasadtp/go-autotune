@@ -1,12 +1,16 @@
+<div align="center">
+
 # go-autotune
 
-[![go-reference](https://img.shields.io/badge/godoc-reference-5272B4?logo=go&logoColor=white)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
-[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-autotune?logo=go&logoColor=white&color=00758D&label=go)](https://github.com/tprasadtp/go-autotune/blob/master/go.mod)
+[![go-reference](https://img.shields.io/badge/godoc-reference-5272b4?logo=go&labelColor=3a3a3a&logoColor=959da5)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
+[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-autotune?logo=go&labelColor=3a3a3a&logoColor=959da5&color=00add8&label=go)](https://github.com/tprasadtp/go-autotune/blob/master/go.mod)
 [![test](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml)
 [![lint](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml)
 [![release](https://github.com/tprasadtp/go-autotune/actions/workflows/release.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/release.yml)
-[![license](https://img.shields.io/github/license/tprasadtp/go-autotune)](https://github.com/tprasadtp/go-autotune/blob/master/LICENSE)
-[![latest-version](https://img.shields.io/github/v/tag/tprasadtp/go-autotune?color=7f50a6&label=release&logo=semver&sort=semver)](https://github.com/tprasadtp/go-autotune/releases)
+[![license](https://img.shields.io/github/license/tprasadtp/go-autotune?logo=github&labelColor=3a3a3a&logoColor=959da5)](https://github.com/tprasadtp/go-autotune/blob/master/LICENSE)
+[![version](https://img.shields.io/github/v/tag/tprasadtp/go-autotune?label=version&sort=semver&logo=semver&labelColor=3a3a3a&logoColor=959da5&color=ce3262)](https://github.com/tprasadtp/go-autotune/releases)
+
+</div>
 
 Automatically configure [`GOMAXPROCS`][GOMAXPROCS] and [`GOMEMLIMIT`][GOMEMLIMIT]
 for your applications to match CPU quota and memory limits assigned.
@@ -15,11 +19,9 @@ Supports _both_ Windows and Linux.
 ## How
 
 - For Linux, CPU and memory limits are obtained from cgroup v2 interface files.
-- For Windows, [QueryInformationJobObject] API is used.
+- For Windows, [Job Objects API] is used.
 
 ## Usage
-
-See [API docs](https://pkg.go.dev/github.com/tprasadtp/go-autotune) for more info and examples.
 
 ```go
 package main
@@ -28,6 +30,8 @@ import (
 	_ "github.com/tprasadtp/go-autotune" // Automatically adjusts GOMAXPROCS & GOMEMLIMIT
 )
 ```
+
+See [API docs] for more info and examples.
 
 ## Requirements (Linux)
 
@@ -56,7 +60,13 @@ This also affects rootless docker and podman.
 ## Disabling Automatic Configuration
 
 To disable automatic configuration at runtime (for compiled binaries),
-Set `GO_AUTOTUNE` environment variable to `0` or `false`.
+Set `GOAUTOTUNE` environment variable to `0` or `false`.
+
+## Supporting Kubernetes In-place Resource Resize
+
+This can be done trivially using using [time.Ticker](https://pkg.go.dev/time#Ticker)
+and a background goroutine. See [API docs] for example code.
+See [Kubernetes docs][k8s-resize-docs] for more info.
 
 ## Incompatible Modules
 
@@ -99,15 +109,20 @@ go test -cover -v ./...
 
 > [!IMPORTANT]
 >
-> Tests extensively use [systemd-run] and [Job Objects API] on Linux and Windows respectively.
-> Thus, running unit tests/integration tests within containers is _not supported_.
+> Tests extensively use [systemd-run] and [Job Objects API] on Linux and Windows
+> respectively. Thus, running unit tests/integration tests within containers is
+> _not supported_.
 
 
 [GOMEMLIMIT]: https://pkg.go.dev/runtime/debug#SetMemoryLimit
 [GOMAXPROCS]: https://pkg.go.dev/runtime#GOMAXPROCS
 [golangci-lint]: https://golangci-lint.run/
 [b8df7f8]: https://github.com/systemd/systemd/pull/23887
-[QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 [systemd-run]: https://www.freedesktop.org/software/systemd/man/latest/systemd-run.html
 [Job Objects API]: https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects
 [enable-cpu-delegation]: https://github.com/systemd/systemd/issues/12362#issuecomment-485762928
+[pkg-autotune]: https://https://pkg.go.dev/github.com/tprasadtp/go-autotune
+[pkg-maxprocs]: https://https://pkg.go.dev/github.com/tprasadtp/go-autotune/maxprocs
+[pkg-memlimit]: https://https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit
+[API docs]: https://pkg.go.dev/github.com/tprasadtp/go-autotune
+[k8s-resize-docs]: https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/

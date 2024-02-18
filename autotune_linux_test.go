@@ -29,7 +29,7 @@ func TestLinux_EnvGOMAXPROCSOne(t *testing.T) {
 }
 
 func TestLinux_EnvGOMAXPROCSMoreThanOne(t *testing.T) {
-	if runtime.NumCPU() == 1 {
+	if runtime.NumCPU() < 2 {
 		t.Skipf("Skipping CPU>1 tests on single core machine")
 	}
 	args := []string{
@@ -140,7 +140,7 @@ func TestLinux_CPULessThanOne(t *testing.T) {
 
 func TestLinux_CPURoundToCeil(t *testing.T) {
 	shared.SkipIfCPUControllerIsNotAvailable(t)
-	if runtime.NumCPU() == 1 {
+	if runtime.NumCPU() < 2 {
 		t.Skipf("Skipping CPU>1 tests on single core machine")
 	}
 	args := []string{

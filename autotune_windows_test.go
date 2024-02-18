@@ -26,7 +26,7 @@ func TestWindows_CPULessThanOne(t *testing.T) {
 }
 
 func TestWindows_CPURoundToCeil(t *testing.T) {
-	if runtime.NumCPU() == 1 {
+	if runtime.NumCPU() < 2 {
 		t.Skipf("Skipping CPU>1 tests on single core machine")
 	}
 	shared.WindowsRun(t, 1.25, 0, 0, "debug", func(t *testing.T) {
@@ -35,7 +35,7 @@ func TestWindows_CPURoundToCeil(t *testing.T) {
 }
 
 func TestWindows_CPUMoreThanOne(t *testing.T) {
-	if runtime.NumCPU() == 1 {
+	if runtime.NumCPU() < 2 {
 		t.Skipf("Skipping CPU>1 tests on single core machine")
 	}
 	shared.WindowsRun(t, 2.0, 0, 0, "debug", func(t *testing.T) {
