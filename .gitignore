@@ -164,3 +164,6 @@ build/
 
 # Benchmarks
 benchmarks/
+
+# Example
+example/example

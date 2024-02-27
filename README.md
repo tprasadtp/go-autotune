@@ -2,13 +2,13 @@
 
 # go-autotune
 
-[![go-reference](https://img.shields.io/badge/godoc-reference-5272b4?logo=go&labelColor=3a3a3a&logoColor=959da5)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
-[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-autotune?logo=go&labelColor=3a3a3a&logoColor=959da5&color=00add8&label=go)](https://github.com/tprasadtp/go-autotune/blob/master/go.mod)
+[![go-reference](https://img.shields.io/badge/godoc-reference-5272b4?labelColor=3a3a3a&logo=go&logoColor=959da5)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
+[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-autotune?labelColor=3a3a3a&color=00758D&label=go&logo=go&logoColor=959da5)](https://github.com/tprasadtp/go-autotune/blob/master/go.mod)
+[![license](https://img.shields.io/github/license/tprasadtp/go-autotune?labelColor=3a3a3a&color=00ADD8&logo=github&logoColor=959da5)](https://github.com/tprasadtp/go-autotune/blob/master/LICENSE)
 [![test](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml)
 [![lint](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml)
 [![release](https://github.com/tprasadtp/go-autotune/actions/workflows/release.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/release.yml)
-[![license](https://img.shields.io/github/license/tprasadtp/go-autotune?logo=github&labelColor=3a3a3a&logoColor=959da5)](https://github.com/tprasadtp/go-autotune/blob/master/LICENSE)
-[![version](https://img.shields.io/github/v/tag/tprasadtp/go-autotune?label=version&sort=semver&logo=semver&labelColor=3a3a3a&logoColor=959da5&color=ce3262)](https://github.com/tprasadtp/go-autotune/releases)
+[![version](https://img.shields.io/github/v/tag/tprasadtp/go-autotune?label=version&sort=semver&labelColor=3a3a3a&color=CE3262&logo=semver&logoColor=959da5)](https://github.com/tprasadtp/go-autotune/releases)
 
 </div>
 
@@ -31,7 +31,7 @@ import (
 )
 ```
 
-See [API docs] for more info and examples.
+See [API docs] and [example](./example/README.md) for more info.
 
 ## Requirements (Linux)
 
@@ -64,8 +64,9 @@ Set `GOAUTOTUNE` environment variable to `0` or `false`.
 
 ## Supporting Kubernetes In-place Resource Resize
 
-This can be done trivially using using [time.Ticker](https://pkg.go.dev/time#Ticker)
-and a background goroutine. See [API docs] for example code.
+This can be done using [time.Ticker](https://pkg.go.dev/time#Ticker)
+and a background goroutine. See [API docs] for examples.
+
 See [Kubernetes docs][k8s-resize-docs] for more info.
 
 ## Incompatible Modules
