@@ -30,7 +30,7 @@ func WithLogger(logger *slog.Logger) Option {
 	return nil
 }
 
-// WithRoundFunc can be used to replace default rounding function ([math.ceil])
+// WithRoundFunc can be used to replace default rounding function ([math.Ceil])
 // which converts fractional CPU to integer values. This is typically not
 // necessary for most apps unless you do not wish your application to encounter
 // CPU throttling. Replacing this with custom function may result in underutilized

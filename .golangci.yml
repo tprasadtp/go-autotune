@@ -512,9 +512,12 @@ issues:
         - wrapcheck
         - forbidigo
         - sloglint
+        - gocyclo
+        - gocognit
 
     # Disable go-header checks for example files
     - path: 'example_(.*)\.go'
       linters:
+        - dupl
         - goheader
         - sloglint
