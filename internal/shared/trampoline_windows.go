@@ -7,6 +7,8 @@ package shared
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -29,7 +31,7 @@ var (
 	procPeekNamedPipe = kernel32.NewProc("PeekNamedPipe")
 )
 
-func PeekNamedPipe(h windows.Handle, buf []byte, lpBytesRead, lpTotalBytesAvail, lpBytesLeftThisMessage *uint32) error {
+func peekNamedPipe(h windows.Handle, buf []byte, lpBytesRead, lpTotalBytesAvail, lpBytesLeftThisMessage *uint32) error {
 	var _p0 *byte
 	if len(buf) > 0 {
 		_p0 = &buf[0]
@@ -50,13 +52,13 @@ func PeekNamedPipe(h windows.Handle, buf []byte, lpBytesRead, lpTotalBytesAvail,
 	return nil
 }
 
-func ReadPipe(h windows.Handle) ([]byte, error) {
+func readPipe(h windows.Handle) ([]byte, error) {
 	var pending uint32
 	var err error
 
 	// Peek a named pipe and check if it has any pending bytes.
 	// Do not copy anything to buffer yet.
-	err = PeekNamedPipe(h, nil, nil, &pending, nil)
+	err = peekNamedPipe(h, nil, nil, &pending, nil)
 	if err != nil && !errors.Is(err, windows.ERROR_SUCCESS) {
 		return nil, fmt.Errorf("PeekNamedPipe: %w", err)
 	}
@@ -74,9 +76,39 @@ func ReadPipe(h windows.Handle) ([]byte, error) {
 	return nil, nil
 }
 
+func pipeLogger(ctx context.Context, wg *sync.WaitGroup, read windows.Handle, logger *OutputLogger) {
+	defer wg.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			// Read any pending data in pipe.
+			buf, err := readPipe(read)
+			if err != nil {
+				logger.Errorf("Failed to read pending data from pipe: %s", err)
+			}
+			if len(buf) > 0 {
+				logger.LogOutput(buf)
+			}
+			return
+		default:
+			buf, err := readPipe(read)
+			if err != nil {
+				logger.Errorf("Failed to read from pipe: %s", err)
+				return
+			}
+			if len(buf) > 0 {
+				logger.LogOutput(buf)
+			}
+			// Avoid CPU bounds, as anonymous pipes do not support overlapped i/o.
+			//nolint:forbidigo //ignore
+			time.Sleep(time.Millisecond * 10)
+		}
+	}
+}
+
 // WindowsRun runs test function fn via Windows jobobject API.
 //
-//nolint:funlen,gocognit // ignore
+//nolint:funlen // ignore
 func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv string, fn func(t *testing.T)) {
 	if fn == nil {
 		t.Fatalf("fn function is nil")
@@ -84,7 +116,6 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 
 	// If trampoline is true, run the given test function.
 	if IsTrue("GO_TEST_EXEC_TRAMPOLINE") {
-		t.Logf("Running test function...")
 		fn(t)
 		return
 	}
@@ -129,11 +160,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		strconv.Quote(exe),
 		fmt.Sprintf(`-test.run=^%s$`, t.Name()),
 		fmt.Sprintf("-test.timeout=%s", timeout),
-	}
-
-	// Add verbose flag if required.
-	if TestingIsVerbose() {
-		trampolineArgs = append(trampolineArgs, "--test.v")
+		"--test.v",
 	}
 
 	// The return value will be empty if test coverage is not enabled.
@@ -141,15 +168,20 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		trampolineArgs = append(trampolineArgs, fmt.Sprintf("--test.gocoverdir=%s", TestingCoverDir(t)))
 	}
 
-	// Task name is derived from test name.
-	jobObjectName, err := windows.UTF16PtrFromString(t.Name())
+	// Generate a random task name.
+	rb := make([]byte, 8)
+	_, err = rand.Read(rb)
 	if err != nil {
-		t.Fatalf("Invalid Task name: %s", err)
+		t.Fatalf("Failed to generate random bytes: %s", err)
+	}
+	jobObjectName, err := windows.UTF16PtrFromString(hex.EncodeToString(rb))
+	if err != nil {
+		t.Fatalf("UTF16PtrFromString: %s", err)
 	}
 
 	// CreateJobObject
 	hJobObject, err := windows.CreateJobObject(
-		NewSecurityAttributes(false),
+		newSecurityAttributes(false),
 		jobObjectName,
 	)
 	if err != nil {
@@ -190,7 +222,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		t.Fatalf("SetInformationJobObject(Memory): %d", v1)
 	}
 
-	// // Add CPU limits if any.
+	// Add CPU limits if specified.
 	if cpu > 0 {
 		cpuLimitInfo := JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{
 			ControlFlags: JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP,
@@ -233,44 +265,44 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	}
 
 	// Create pipes for stdout and stderr
-	var stdoutWriteHandle windows.Handle
-	var stdoutReadHandle windows.Handle
+	var stdoutPipeWrite windows.Handle
+	var stdoutPipeRead windows.Handle
 	err = windows.CreatePipe(
-		&stdoutReadHandle,
-		&stdoutWriteHandle,
-		NewSecurityAttributes(true),
+		&stdoutPipeRead,
+		&stdoutPipeWrite,
+		newSecurityAttributes(true),
 		0,
 	)
 	if err != nil {
 		t.Fatalf("Failed to create pipe: %s", err)
 	}
 	t.Cleanup(func() {
-		_ = windows.CloseHandle(stdoutReadHandle)
-		_ = windows.CloseHandle(stdoutWriteHandle)
+		_ = windows.CloseHandle(stdoutPipeRead)
+		_ = windows.CloseHandle(stdoutPipeWrite)
 	})
 
-	var stderrWriteHandle windows.Handle
-	var stderrReadHandle windows.Handle
+	var stderrPipeWrite windows.Handle
+	var stderrPipeRead windows.Handle
 	err = windows.CreatePipe(
-		&stderrReadHandle,
-		&stderrWriteHandle,
-		NewSecurityAttributes(true),
+		&stderrPipeRead,
+		&stderrPipeWrite,
+		newSecurityAttributes(true),
 		0,
 	)
 	if err != nil {
 		t.Fatalf("Failed to create pipe: %s", err)
 	}
 	t.Cleanup(func() {
-		_ = windows.CloseHandle(stderrReadHandle)
-		_ = windows.CloseHandle(stderrWriteHandle)
+		_ = windows.CloseHandle(stderrPipeRead)
+		_ = windows.CloseHandle(stderrPipeWrite)
 	})
 
 	// Extended startup info.
 	startupInfoEx := windows.StartupInfoEx{}
 	startupInfoEx.Cb = uint32(unsafe.Sizeof(startupInfoEx))
 	startupInfoEx.Flags = windows.STARTF_USESTDHANDLES
-	startupInfoEx.StdOutput = stdoutWriteHandle
-	startupInfoEx.StdErr = stderrWriteHandle
+	startupInfoEx.StdOutput = stdoutPipeWrite
+	startupInfoEx.StdErr = stderrPipeWrite
 	startupInfoEx.ProcThreadAttributeList = procThreadAttrs.List() //nolint:govet // unusedwrite: ProcThreadAttributeList will be read by syscall
 	processInfo := &windows.ProcessInformation{}
 
@@ -320,36 +352,14 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	}
 
 	var wg sync.WaitGroup
-	pipeOutputLoggerFunc := func(l *OutputLogger, ctx context.Context, h windows.Handle, prefix string) {
-		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				t.Logf("Stopping reader %s", prefix)
-				return
 
-			default:
-				buf, err := ReadPipe(h)
-				if err != nil {
-					l.Errorf("Failed to read from pipe(%s): %s", prefix, err)
-					return
-				}
-				if len(buf) > 0 {
-					l.LogOutput(buf)
-				}
-				// Avoid CPU bounds, as anonymous pipes do not support overlapped i/o.
-				//nolint:forbidigo //ignore
-				time.Sleep(time.Millisecond * 10)
-			}
-		}
-	}
+	stdoutLogger := NewOutputLogger(t, "stdout")
+	wg.Add(1)
+	go pipeLogger(ctx, &wg, stdoutPipeRead, stdoutLogger)
 
+	stderrLogger := NewOutputLogger(t, "stderr")
 	wg.Add(1)
-	lStdOut := NewOutputLogger(t, "stdout")
-	go pipeOutputLoggerFunc(lStdOut, ctx, stdoutReadHandle, "stdout")
-	wg.Add(1)
-	lstdErr := NewOutputLogger(t, "stdout")
-	go pipeOutputLoggerFunc(lstdErr, ctx, stderrReadHandle, "stderr")
+	go pipeLogger(ctx, &wg, stderrPipeRead, stderrLogger)
 
 	procState, err := process.Wait()
 	if err != nil {
@@ -358,36 +368,20 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	if !procState.Success() {
 		t.Errorf("Trampoline returned: %d", procState.ExitCode())
 	}
+
 	// Stop reader and writer go routines.
 	cancel()
 
 	// Wait for pipe reader goroutines to complete
 	wg.Wait()
-
-	// Read any pending data from stdout and stderr pipes.
-	stdoutPending, err := ReadPipe(stdoutReadHandle)
-	if err != nil {
-		t.Logf("Failed to read pending data from stdout pipe: %s", err)
-	}
-	if len(stdoutPending) > 0 {
-		lStdOut.LogOutput(stdoutPending)
-	}
-
-	stdErrPending, err := ReadPipe(stderrReadHandle)
-	if err != nil {
-		t.Logf("Failed to read pending data from stdout pipe: %s", err)
-	}
-	if len(stdErrPending) > 0 {
-		lStdOut.LogOutput(stdErrPending)
-	}
 }
 
-// NewSecurityAttributes creates a SECURITY_ATTRIBUTES structure, that specifies the
+// newSecurityAttributes creates a SECURITY_ATTRIBUTES structure, that specifies the
 // security descriptor for the job object and determines that child
 // processes cannot inherit the handle.
 //
 // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa379560(v=vs.85)
-func NewSecurityAttributes(inherit bool) *windows.SecurityAttributes {
+func newSecurityAttributes(inherit bool) *windows.SecurityAttributes {
 	var sa windows.SecurityAttributes
 	sa.Length = uint32(unsafe.Sizeof(sa))
 	if inherit {
