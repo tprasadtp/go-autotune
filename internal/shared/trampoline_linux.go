@@ -153,12 +153,8 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 		os.Args[0],
 		fmt.Sprintf("-test.run=^%s$", t.Name()),
 		fmt.Sprintf("-test.timeout=%s", timeout),
+		"-test.v=true",
 	)
-
-	// Add verbose flag if required.
-	if TestingIsVerbose() {
-		args = append(args, "-test.v=true")
-	}
 
 	// The return value will be empty if test coverage is not enabled.
 	if TestingCoverDir(t) != "" {
