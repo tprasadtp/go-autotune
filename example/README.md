@@ -4,7 +4,7 @@
 >
 > This is an _example_ and is **NOT** covered by semver compatibility guarantees.
 
-## Windows Containers
+## Windows (Docker)
 
 > [!IMPORTANT]
 >
@@ -50,7 +50,7 @@
   GOMEMLIMIT : 235929600
   ```
 
-## Linux Systemd Services
+## Linux (Systemd)
 
 - Change base directory
 
@@ -94,6 +94,46 @@
   GOMAXPROCS : 2
   NumCPU     : 4
   GOMEMLIMIT : 262144000
+  ```
+
+## Linux (Docker)
+
+- Change base directory
+
+  ```console
+  cd example
+  ```
+
+- Build example go binary
+
+  ```bash
+  go build -o example example.go
+  ```
+
+- Build docker image
+
+  ```bash
+  docker build \
+    --tag go-autotune-example \
+    .
+  ```
+
+- Run docker image
+
+  ```bash
+  docker run \
+    --rm \
+    --network=none \
+    --cpus=3 \
+    --memory=500M \
+    go-autotune-example:latest
+  ```
+
+  ```
+  GOOS       : linux
+  GOMAXPROCS : 3
+  NumCPU     : 4
+  GOMEMLIMIT : 471859200
   ```
 
 [Windows container version compatibility]: https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility
