@@ -6,20 +6,20 @@ package autotune
 import (
 	"log/slog"
 
+	"github.com/tprasadtp/go-autotune/internal/env"
 	"github.com/tprasadtp/go-autotune/internal/platform"
-	"github.com/tprasadtp/go-autotune/internal/shared"
 	"github.com/tprasadtp/go-autotune/maxprocs"
 	"github.com/tprasadtp/go-autotune/memlimit"
 )
 
 //nolint:gochecknoinits // ignore
 func init() {
-	if shared.IsFalse("GO_AUTOTUNE") || shared.IsFalse("GOAUTOTUNE") {
+	if env.IsFalse("GO_AUTOTUNE") || env.IsFalse("GOAUTOTUNE") {
 		return
 	}
 
 	var logger *slog.Logger
-	if shared.IsDebug("GO_AUTOTUNE") || shared.IsDebug("GOAUTOTUNE") {
+	if env.IsDebug("GO_AUTOTUNE") || env.IsDebug("GOAUTOTUNE") {
 		logger = slog.Default()
 	}
 

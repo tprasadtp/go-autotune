@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/tprasadtp/go-autotune/internal/parse"
 	"github.com/tprasadtp/go-autotune/internal/platform"
 	"github.com/tprasadtp/go-autotune/internal/shared"
 )
@@ -64,7 +65,7 @@ func TestGetQuota_NoQuota(t *testing.T) {
 }
 
 func TestGetQuota_JobMemoryLimit(t *testing.T) {
-	shared.WindowsRun(t, 0, 3*shared.GiByte, 0, "", func(t *testing.T) {
+	shared.WindowsRun(t, 0, 3*parse.GiByte, 0, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
@@ -79,8 +80,8 @@ func TestGetQuota_JobMemoryLimit(t *testing.T) {
 			t.Errorf("expected no error, got=%s", err)
 		}
 
-		if max != 3*shared.GiByte {
-			t.Errorf("expected max=%d, got=%d", int64(3*shared.GiByte), max)
+		if max != 3*parse.GiByte {
+			t.Errorf("expected max=%d, got=%d", int64(3*parse.GiByte), max)
 		}
 
 		if high != 0 {
@@ -90,7 +91,7 @@ func TestGetQuota_JobMemoryLimit(t *testing.T) {
 }
 
 func TestGetQuota_ProcessMemoryLimit(t *testing.T) {
-	shared.WindowsRun(t, 0, 0, 2.5*shared.GiByte, "", func(t *testing.T) {
+	shared.WindowsRun(t, 0, 0, 2.5*parse.GiByte, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
@@ -105,8 +106,8 @@ func TestGetQuota_ProcessMemoryLimit(t *testing.T) {
 			t.Errorf("expected no error, got=%s", err)
 		}
 
-		if max != 2.5*shared.GiByte {
-			t.Errorf("expected max=%d, got=%d", int64(3*shared.GiByte), max)
+		if max != 2.5*parse.GiByte {
+			t.Errorf("expected max=%d, got=%d", int64(3*parse.GiByte), max)
 		}
 
 		if high != 0 {
@@ -116,7 +117,7 @@ func TestGetQuota_ProcessMemoryLimit(t *testing.T) {
 }
 
 func TestGetQuota_WithBothMemory(t *testing.T) {
-	shared.WindowsRun(t, 0, 2.5*shared.GiByte, 3*shared.GiByte, "", func(t *testing.T) {
+	shared.WindowsRun(t, 0, 2.5*parse.GiByte, 3*parse.GiByte, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
@@ -131,8 +132,8 @@ func TestGetQuota_WithBothMemory(t *testing.T) {
 			t.Errorf("expected no error, got=%s", err)
 		}
 
-		if max != 3*shared.GiByte {
-			t.Errorf("expected max=%d, got=%d", int64(3*shared.GiByte), max)
+		if max != 3*parse.GiByte {
+			t.Errorf("expected max=%d, got=%d", int64(3*parse.GiByte), max)
 		}
 
 		if high != 0 {

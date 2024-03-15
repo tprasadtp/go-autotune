@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package shared_test
+package env_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/tprasadtp/go-autotune/internal/shared"
+	"github.com/tprasadtp/go-autotune/internal/env"
 )
 
 func TestIsTrue(t *testing.T) {
@@ -31,7 +31,7 @@ func TestIsTrue(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(fmt.Sprintf("env=%s", tc.env), func(t *testing.T) {
 			t.Setenv("GO_TEST_PKG_SHARED_ENV_FOO", tc.env)
-			v := shared.IsTrue("GO_TEST_PKG_SHARED_ENV_FOO")
+			v := env.IsTrue("GO_TEST_PKG_SHARED_ENV_FOO")
 			if tc.expect != v {
 				t.Errorf("expected=%t, got=%t", tc.expect, v)
 			}
@@ -58,7 +58,7 @@ func TestIsFalse(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(fmt.Sprintf("env=%s", tc.env), func(t *testing.T) {
 			t.Setenv("GO_TEST_PKG_SHARED_ENV_FOO", tc.env)
-			v := shared.IsFalse("GO_TEST_PKG_SHARED_ENV_FOO")
+			v := env.IsFalse("GO_TEST_PKG_SHARED_ENV_FOO")
 			if tc.expect != v {
 				t.Errorf("expected=%t, got=%t", tc.expect, v)
 			}
@@ -88,7 +88,7 @@ func TestIsDebug(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(fmt.Sprintf("env=%s", tc.env), func(t *testing.T) {
 			t.Setenv("GO_TEST_PKG_SHARED_ENV_FOO", tc.env)
-			v := shared.IsDebug("GO_TEST_PKG_SHARED_ENV_FOO")
+			v := env.IsDebug("GO_TEST_PKG_SHARED_ENV_FOO")
 			if tc.expect != v {
 				t.Errorf("expected=%t, got=%t", tc.expect, v)
 			}

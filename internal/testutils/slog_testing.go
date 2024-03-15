@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package shared
+package testutils
 
 import (
 	"context"
@@ -17,6 +17,9 @@ type TestingHandler struct {
 	t     testing.TB
 	attrs []slog.Attr
 }
+
+// Event is an alias for [log/slog.Record].
+type Event = slog.Record
 
 // NewTestingHandler returns a [slog.Handler], which writes to
 // Log method of [testing.TB]. If tb is nil, it panics.

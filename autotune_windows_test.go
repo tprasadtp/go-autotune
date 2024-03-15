@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/tprasadtp/go-autotune/internal/parse"
 	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
@@ -53,31 +54,31 @@ func TestWindows_CPUMoreThanOneFraction(t *testing.T) {
 }
 
 func TestWindows_JobMemoryLimit(t *testing.T) {
-	shared.WindowsRun(t, 0, 2.5*shared.GiByte, 0, "debug", func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 2.25*shared.GiByte)
+	shared.WindowsRun(t, 0, 2.5*parse.GiByte, 0, "debug", func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 2.25*parse.GiByte)
 	})
 }
 
 func TestWindows_JobMemoryLimitHigh(t *testing.T) {
-	shared.WindowsRun(t, 0, 5*shared.GiByte, 0, "debug", func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 4.75*shared.GiByte)
+	shared.WindowsRun(t, 0, 5*parse.GiByte, 0, "debug", func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 4.75*parse.GiByte)
 	})
 }
 
 func TestWindows_ProcessMemoryLimit(t *testing.T) {
-	shared.WindowsRun(t, 0, 0, 2.5*shared.GiByte, "debug", func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 2.25*shared.GiByte)
+	shared.WindowsRun(t, 0, 0, 2.5*parse.GiByte, "debug", func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 2.25*parse.GiByte)
 	})
 }
 
 func TestWindows_ProcessMemoryLimitHigh(t *testing.T) {
-	shared.WindowsRun(t, 0, 0, 5*shared.GiByte, "debug", func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 4.75*shared.GiByte)
+	shared.WindowsRun(t, 0, 0, 5*parse.GiByte, "debug", func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 4.75*parse.GiByte)
 	})
 }
 
 func TestWindows_Disable(t *testing.T) {
-	shared.WindowsRun(t, 0.5, 2.5*shared.GiByte, 0, "false", func(t *testing.T) {
+	shared.WindowsRun(t, 0.5, 2.5*parse.GiByte, 0, "false", func(t *testing.T) {
 		verify(t, runtime.NumCPU(), math.MaxInt64)
 	})
 }

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package shared
+package parse
 
 import (
 	"fmt"
@@ -19,9 +19,9 @@ const (
 	TiByte
 )
 
-// ParseSize parses given human readable string to bytes.
+// Memlimit parses given human readable string to bytes.
 // This only accepts valid values for GOMEMLIMIT.
-func ParseSize(s string) (int64, error) {
+func Memlimit(s string) (int64, error) {
 	// As special case if file size empty return zero value.
 	if s == "" {
 		return 0, nil

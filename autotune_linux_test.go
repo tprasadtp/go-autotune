@@ -10,7 +10,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/tprasadtp/go-autotune/internal/shared"
+	"github.com/tprasadtp/go-autotune/internal/parse"
+	"github.com/tprasadtp/go-autotune/internal/testutils"
 )
 
 func TestLinux_EnvGOMAXPROCSOne(t *testing.T) {
@@ -20,20 +21,20 @@ func TestLinux_EnvGOMAXPROCSOne(t *testing.T) {
 		"--property=CPUQuota=150%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, 1, math.MaxInt64)
 	})
 }
 
 func TestLinux_EnvGOMAXPROCSMoreThanOne(t *testing.T) {
-	shared.SkipIfCPUCountLessThan(t, 2)
+	testutils.SkipIfCPUCountLessThan(t, 2)
 	args := []string{
 		"--pipe",
 		"--setenv=GOMAXPROCS=2",
 		"--property=CPUQuota=50%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, 2, math.MaxInt64)
 	})
 }
@@ -45,7 +46,7 @@ func TestLinux_EnvGOMAXPROCSInvalidNegative(t *testing.T) {
 		"--property=CPUQuota=200%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, runtime.NumCPU(), math.MaxInt64)
 	})
 }
@@ -57,7 +58,7 @@ func TestLinux_EnvGOMAXPROCSInvalidZero(t *testing.T) {
 		"--property=CPUQuota=50%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, runtime.NumCPU(), math.MaxInt64)
 	})
 }
@@ -69,7 +70,7 @@ func TestLinux_EnvGOMAXPROCSInvalidFraction(t *testing.T) {
 		"--property=CPUQuota=250%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, runtime.NumCPU(), math.MaxInt64)
 	})
 }
@@ -81,7 +82,7 @@ func TestLinux_EnvGOMAXPROCSInvalid(t *testing.T) {
 		"--property=CPUQuota=50%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, runtime.NumCPU(), math.MaxInt64)
 	})
 }
@@ -91,57 +92,57 @@ func TestLinux_NoLimits(t *testing.T) {
 		"--pipe",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, runtime.NumCPU(), math.MaxInt64)
 	})
 }
 
 func TestLinux_CPUExactlyOne(t *testing.T) {
-	shared.SkipIfCPUControllerIsNotAvailable(t)
+	testutils.SkipIfCPUControllerIsNotAvailable(t)
 	args := []string{
 		"--pipe",
 		"--property=CPUQuota=100%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, 1, math.MaxInt64)
 	})
 }
 
 func TestLinux_CPULessThanOne(t *testing.T) {
-	shared.SkipIfCPUControllerIsNotAvailable(t)
+	testutils.SkipIfCPUControllerIsNotAvailable(t)
 	args := []string{
 		"--pipe",
 		"--property=CPUQuota=50%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, 1, math.MaxInt64)
 	})
 }
 
 func TestLinux_CPURoundToCeil(t *testing.T) {
-	shared.SkipIfCPUControllerIsNotAvailable(t)
-	shared.SkipIfCPUCountLessThan(t, 2)
+	testutils.SkipIfCPUControllerIsNotAvailable(t)
+	testutils.SkipIfCPUCountLessThan(t, 2)
 	args := []string{
 		"--pipe",
 		"--property=CPUQuota=150%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, 2, math.MaxInt64)
 	})
 }
 
 func TestLinux_CPUMoreThanOne(t *testing.T) {
-	shared.SkipIfCPUControllerIsNotAvailable(t)
-	shared.SkipIfCPUCountLessThan(t, 3)
+	testutils.SkipIfCPUControllerIsNotAvailable(t)
+	testutils.SkipIfCPUCountLessThan(t, 3)
 	args := []string{
 		"--pipe",
 		"--property=CPUQuota=250%",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, 3, math.MaxInt64)
 	})
 }
@@ -153,8 +154,8 @@ func TestLinux_Env_GOMEMLIMIT_WithSuffix(t *testing.T) {
 		"--property=MemoryHigh=2.5G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 3*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 3*parse.GiByte)
 	})
 }
 
@@ -165,8 +166,8 @@ func TestLinux_Env_GOMEMLIMIT_Bytes(t *testing.T) {
 		"--property=MemoryHigh=2.5G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 3*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 3*parse.GiByte)
 	})
 }
 
@@ -176,8 +177,8 @@ func TestLinux_MemoryMaxSpecified(t *testing.T) {
 		"--property=MemoryMax=2.5G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 2.25*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 2.25*parse.GiByte)
 	})
 }
 
@@ -187,8 +188,8 @@ func TestLinux_MemoryMaxLarge(t *testing.T) {
 		"--property=MemoryMax=5G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 4.75*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 4.75*parse.GiByte)
 	})
 }
 
@@ -198,8 +199,8 @@ func TestLinux_MemoryHighSpecified(t *testing.T) {
 		"--property=MemoryHigh=2.5G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 2.5*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 2.5*parse.GiByte)
 	})
 }
 
@@ -210,8 +211,8 @@ func TestLinux_MemoryMaxLessThanMemoryHigh(t *testing.T) {
 		"--property=MemoryHigh=3G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 2.25*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 2.25*parse.GiByte)
 	})
 }
 
@@ -222,8 +223,8 @@ func TestLinux_MemoryMaxEqualsMemoryHigh(t *testing.T) {
 		"--property=MemoryHigh=2.5G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 2.25*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 2.25*parse.GiByte)
 	})
 }
 
@@ -234,8 +235,8 @@ func TestLinux_MemoryMaxEqualsMemoryHighLargeValue(t *testing.T) {
 		"--property=MemoryHigh=5G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 4.75*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 4.75*parse.GiByte)
 	})
 }
 
@@ -246,8 +247,8 @@ func TestLinux_MemoryLargerThanMemoryHigh(t *testing.T) {
 		"--property=MemoryHigh=2.5G",
 		"--setenv=GOAUTOTUNE=debug",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
-		verify(t, runtime.NumCPU(), 2.5*shared.GiByte)
+	testutils.SystemdRun(t, args, func(t *testing.T) {
+		verify(t, runtime.NumCPU(), 2.5*parse.GiByte)
 	})
 }
 
@@ -259,7 +260,7 @@ func TestLinux_Disable(t *testing.T) {
 		"--property=MemoryMax=3G",
 		"--property=MemoryHigh=2.5G",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		verify(t, runtime.NumCPU(), math.MaxInt64)
 	})
 }

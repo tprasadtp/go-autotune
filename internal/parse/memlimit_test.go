@@ -1,15 +1,13 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package shared_test
+package parse
 
 import (
 	"testing"
-
-	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
-func TestParseFileSize(t *testing.T) {
+func TestMemlimit(t *testing.T) {
 	type testCase struct {
 		name    string
 		input   string
@@ -60,7 +58,7 @@ func TestParseFileSize(t *testing.T) {
 		{
 			name:   "100kib",
 			input:  "100kib",
-			expect: shared.KiByte * 100,
+			expect: KiByte * 100,
 		},
 		{
 			name:    "100KB",
@@ -90,7 +88,7 @@ func TestParseFileSize(t *testing.T) {
 		{
 			name:   "100KiB",
 			input:  "100KiB",
-			expect: 100 * shared.KiByte,
+			expect: 100 * KiByte,
 		},
 		{
 			name:    "100Ki",
@@ -100,7 +98,7 @@ func TestParseFileSize(t *testing.T) {
 		{
 			name:   "1MiB",
 			input:  "1MiB",
-			expect: shared.MiByte,
+			expect: MiByte,
 		},
 		{
 			name:    "1.0Mi",
@@ -178,7 +176,7 @@ func TestParseFileSize(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			s, err := shared.ParseSize(tc.input)
+			s, err := Memlimit(tc.input)
 			if tc.invalid {
 				if s != 0 {
 					t.Errorf("expect value to be 0 when input is invalid (%q)", tc.input)

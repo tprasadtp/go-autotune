@@ -14,8 +14,8 @@ import (
 	"runtime"
 	"strconv"
 
+	"github.com/tprasadtp/go-autotune/internal/discard"
 	"github.com/tprasadtp/go-autotune/internal/platform"
-	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
 type config struct {
@@ -62,7 +62,7 @@ func Configure(opts ...Option) {
 
 	// If logger is nil, use a discard logger.
 	if cfg.Logger == nil {
-		cfg.Logger = slog.New(shared.NewDiscardHandler())
+		cfg.Logger = slog.New(discard.NewHandler())
 	}
 
 	// If CPUQuotaFunc is not specified, use default based on CGroupV2.

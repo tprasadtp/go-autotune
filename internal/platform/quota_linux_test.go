@@ -8,13 +8,14 @@ package platform_test
 import (
 	"testing"
 
+	"github.com/tprasadtp/go-autotune/internal/parse"
 	"github.com/tprasadtp/go-autotune/internal/platform"
-	"github.com/tprasadtp/go-autotune/internal/shared"
+	"github.com/tprasadtp/go-autotune/internal/testutils"
 )
 
 func TestGetQuota_NoQuota(t *testing.T) {
 	args := []string{"--pipe"}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		path, err := platform.GetCgroupInterfacePath()
 		if err != nil {
 			t.Fatalf("failed to get cgroup path")
@@ -50,7 +51,7 @@ func TestGetQuota_Memory(t *testing.T) {
 		"--property=MemoryHigh=2.5G",
 		"--property=MemoryMax=3G",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		path, err := platform.GetCgroupInterfacePath()
 		if err != nil {
 			t.Fatalf("failed to get cgroup path")
@@ -61,23 +62,23 @@ func TestGetQuota_Memory(t *testing.T) {
 			t.Errorf("expected no error, got=%s", err)
 		}
 
-		if max != 3*shared.GiByte {
-			t.Errorf("expected max=%d, got=%d", int64(3*shared.GiByte), max)
+		if max != 3*parse.GiByte {
+			t.Errorf("expected max=%d, got=%d", int64(3*parse.GiByte), max)
 		}
 
-		if high != 2.5*shared.GiByte {
-			t.Errorf("expected high=%d, got=%d", int64(2.5*shared.GiByte), high)
+		if high != 2.5*parse.GiByte {
+			t.Errorf("expected high=%d, got=%d", int64(2.5*parse.GiByte), high)
 		}
 	})
 }
 
 func TestGetQuota_CPU(t *testing.T) {
-	shared.SkipIfCPUControllerIsNotAvailable(t)
+	testutils.SkipIfCPUControllerIsNotAvailable(t)
 	args := []string{
 		"--pipe",
 		"--property=CPUQuota=50%",
 	}
-	shared.SystemdRun(t, args, func(t *testing.T) {
+	testutils.SystemdRun(t, args, func(t *testing.T) {
 		path, err := platform.GetCgroupInterfacePath()
 		if err != nil {
 			t.Fatalf("failed to get cgroup path")

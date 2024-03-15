@@ -3,7 +3,7 @@
 
 //go:build linux
 
-package shared
+package testutils
 
 import (
 	"bytes"
@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/tprasadtp/go-autotune/internal/env"
 )
 
 var (
@@ -93,7 +95,7 @@ func SystemdRun(t *testing.T, flags []string, fn func(t *testing.T)) {
 	}
 
 	// If trampoline is true, run the given test function.
-	if IsTrue("GO_TEST_EXEC_TRAMPOLINE") {
+	if env.IsTrue("GO_TEST_EXEC_TRAMPOLINE") {
 		fn(t)
 		return
 	}

@@ -23,6 +23,8 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
+	"github.com/tprasadtp/go-autotune/internal/env"
+	"github.com/tprasadtp/go-autotune/internal/types"
 	"golang.org/x/sys/windows"
 )
 
@@ -115,7 +117,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	}
 
 	// If trampoline is true, run the given test function.
-	if IsTrue("GO_TEST_EXEC_TRAMPOLINE") {
+	if env.IsTrue("GO_TEST_EXEC_TRAMPOLINE") {
 		fn(t)
 		return
 	}
@@ -224,8 +226,8 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 
 	// Add CPU limits if specified.
 	if cpu > 0 {
-		cpuLimitInfo := JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{
-			ControlFlags: JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP,
+		cpuLimitInfo := types.JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{
+			ControlFlags: types.JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | types.JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP,
 			Value: func() uint32 {
 				v := cpu / float64(runtime.NumCPU()) * 10000
 				if v < 10000 {
@@ -256,7 +258,7 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	}
 
 	err = procThreadAttrs.Update(
-		PROC_THREAD_ATTRIBUTE_JOB_LIST,
+		types.PROC_THREAD_ATTRIBUTE_JOB_LIST,
 		unsafe.Pointer(&hJobObject),
 		unsafe.Sizeof(hJobObject),
 	)
