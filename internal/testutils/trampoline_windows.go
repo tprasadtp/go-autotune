@@ -3,7 +3,7 @@
 
 //go:build windows
 
-package shared
+package testutils
 
 import (
 	"context"

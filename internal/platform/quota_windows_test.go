@@ -11,7 +11,7 @@ import (
 
 	"github.com/tprasadtp/go-autotune/internal/parse"
 	"github.com/tprasadtp/go-autotune/internal/platform"
-	"github.com/tprasadtp/go-autotune/internal/shared"
+	"github.com/tprasadtp/go-autotune/internal/testutils"
 )
 
 func TestGetQuota_NoQuotaDirect(t *testing.T) {
@@ -39,7 +39,7 @@ func TestGetQuota_NoQuotaDirect(t *testing.T) {
 }
 
 func TestGetQuota_NoQuota(t *testing.T) {
-	shared.WindowsRun(t, 0, 0, 0, "", func(t *testing.T) {
+	testutils.WindowsRun(t, 0, 0, 0, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
@@ -65,7 +65,7 @@ func TestGetQuota_NoQuota(t *testing.T) {
 }
 
 func TestGetQuota_JobMemoryLimit(t *testing.T) {
-	shared.WindowsRun(t, 0, 3*parse.GiByte, 0, "", func(t *testing.T) {
+	testutils.WindowsRun(t, 0, 3*parse.GiByte, 0, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
@@ -91,7 +91,7 @@ func TestGetQuota_JobMemoryLimit(t *testing.T) {
 }
 
 func TestGetQuota_ProcessMemoryLimit(t *testing.T) {
-	shared.WindowsRun(t, 0, 0, 2.5*parse.GiByte, "", func(t *testing.T) {
+	testutils.WindowsRun(t, 0, 0, 2.5*parse.GiByte, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
@@ -117,7 +117,7 @@ func TestGetQuota_ProcessMemoryLimit(t *testing.T) {
 }
 
 func TestGetQuota_WithBothMemory(t *testing.T) {
-	shared.WindowsRun(t, 0, 2.5*parse.GiByte, 3*parse.GiByte, "", func(t *testing.T) {
+	testutils.WindowsRun(t, 0, 2.5*parse.GiByte, 3*parse.GiByte, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
@@ -143,7 +143,7 @@ func TestGetQuota_WithBothMemory(t *testing.T) {
 }
 
 func TestGetQuota_CPULessThanOne(t *testing.T) {
-	shared.WindowsRun(t, 0.5, 0, 0, "", func(t *testing.T) {
+	testutils.WindowsRun(t, 0.5, 0, 0, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
@@ -159,7 +159,7 @@ func TestGetQuota_CPUMoreThanOne(t *testing.T) {
 	if runtime.NumCPU() == 1 {
 		t.Skipf("Skipping CPU>1 tests on single core machine")
 	}
-	shared.WindowsRun(t, 1.5, 0, 0, "", func(t *testing.T) {
+	testutils.WindowsRun(t, 1.5, 0, 0, "", func(t *testing.T) {
 		cpu, err := platform.GetCPUQuota()
 		if err != nil {
 			t.Errorf("expected no error, got=%s", err)
