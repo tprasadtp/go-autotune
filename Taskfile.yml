@@ -92,7 +92,7 @@ tasks:
   internal:go:create-coverage-dir:
     internal: true
     status:
-       - "{{ if .GO_COVER_DIR }}test -d {{ .GO_COVER_DIR|quote }}{{ end }}"
+      - "{{ if .GO_COVER_DIR }}test -d {{ .GO_COVER_DIR|quote }}{{ end }}"
     cmds:
       - task: internal:mkdir
         vars:
@@ -227,7 +227,7 @@ tasks:
       - task: internal:go:clean-coverage-files
       - task: internal:rmdir
         vars:
-          DIRECTORY: '{{ .GO_COVER_DIR }}'
+          DIRECTORY: "{{ .GO_COVER_DIR }}"
       - task: internal:rm-file-glob
         vars:
           DIRECTORY: '{{ joinPath .ROOT_DIR "dist" }}'
@@ -255,5 +255,74 @@ tasks:
         vars:
           DIRECTORY: "{{ .ITEM }}"
         for:
-          - '{{ .GO_COVER_DIR }}'
+          - "{{ .GO_COVER_DIR }}"
           - '{{ joinPath .ROOT_DIR "bin" }}'
+  # -----------------------------------------------------------------
+  # Build example image which can be run easily.
+  # -----------------------------------------------------------------
+  internal:build-example-image-tarball:
+    internal: true
+    dir: example
+    requires:
+      vars:
+        - "KO_CONFIG_PATH"
+        - "KO_IMAGE_TAG"
+        - "KO_TARBALL_OUTPUT"
+        - "KO_CACHE_DIR"
+        - "GIT_COMMIT"
+    env:
+      KO_DOCKER_REPO: ghcr.io/tprasadtp/go-autotune
+      KO_CONFIG_PATH: "{{ .KO_CONFIG_PATH }}"
+      KOCACHE: "{{.KO_CACHE_DIR}}"
+    vars:
+      GIT_COMMIT:
+        sh: git -c log.showSignature=false show --format=%H --quiet HEAD
+      IMAGE_LABEL_FLAGS: >-
+        {{- printf "%s %s" " --image-label" `org.opencontainers.image.title=go-autotune`` }}
+        {{- printf "%s %s" " --image-label" `"org.opencontainers.image.description=Example image for go-autotune"` }}
+        {{- printf "%s %s" " --image-label" `"org.opencontainers.image.source=https://github.com/tprasadtp/go-autoune"` }}
+        {{- printf "%s %s" " --image-label" `"org.opencontainers.image.vendor=Prasad Tengse <tprasadtp@users.noreply.github.com>"` }}
+        {{- printf "%s %s" " --image-label" `"org.opencontainers.image.documentation=https://pkg.go.dev/github.com/tprasadtp/go-autotune/example"` }}
+        {{- printf "%s %s" " --image-label" `"io.artifacthub.package.readme-url=https://raw.githubusercontent.com/tprasadtp/go-autotune/master/README.md"` }}
+    cmds:
+      - cmd: ko build --push=false --bare --sbom=none --tags={{.KO_IMAGE_TAG}} --tarball {{.KO_TARBALL_OUTPUT}} {{.IMAGE_LABEL_FLAGS}}
+  build-example-images:
+    desc: "Build example docker images"
+    vars:
+      GIT_COMMIT:
+        sh: git -c log.showSignature=false show --format=%H --quiet HEAD
+      GIT_COMMIT_SHORT:
+        sh: git -c log.showSignature=false show --format=%h --quiet HEAD
+    cmds:
+      - for:
+          - "linux-amd64"
+          - "linux-arm64"
+          - "linux-armv7"
+          - "windows-2019-amd64"
+          - "windows-2022-amd64"
+          - "windows-2025-amd64"
+          - "windows-20H2-amd64"
+        task: internal:build-example-image-tarball
+        vars:
+          KO_CONFIG_PATH: ".ko.{{.ITEM}}.yml"
+          KO_IMAGE_TAG: "{{.ITEM}}"
+          KO_TARBALL_OUTPUT: "{{.ITEM}}.tar.gz"
+          KO_CACHE_DIR: ".cache"
+          GIT_COMMIT: "{{.GITCOMMIT}}"
+          GIT_COMMIT_SHORT: "{{.GIT_COMMIT_SHORT}}"
+  debug:
+    vars:
+      GIT_COMMIT:
+        sh: git -c log.showSignature=false show --format=%H --quiet HEAD
+      IMAGE_LABEL_FLAGS: >-
+        {{- printf  '%s%s' " --image-label=org.opencontainers.image.title=go-autotune" }}
+        {{- printf  '%s%s' " --image-label=org.opencontainers.image.description=Example image for go-autotune" }}
+        {{- printf  '%s%s' " --image-label=org.opencontainers.image.source=https://github.com/tprasadtp/go-autoune" }}
+        {{- printf  '%s%s' " --image-label=org.opencontainers.image.vendor=Prasad Tengse <tprasadtp@users.noreply.github.com>" }}
+        {{- printf  '%s%s' " --image-label=org.opencontainers.image.documentation=https://pkg.go.dev/github.com/tprasadtp/go-autotune/example" }}
+        {{- printf  '%s%s' " --image-label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/tprasadtp/go-autotune/master/README.md" }}
+        {{- if .GIT_COMMIT }}
+          {{- printf  '%s%s' " --image-label=org.opencontainers.image.revision=%s" .GIT_COMMIT }}
+        {{- end }}
+    cmds:
+      - cmd: 'echo "{{.IMAGE_LABEL_FLAGS}}"'

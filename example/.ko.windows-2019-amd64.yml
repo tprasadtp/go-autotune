@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+defaultBaseImage: mcr.microsoft.com/windows/nanoserver:ltsc2019
+defaultPlatforms:
+  - windows/amd64
+builds:
+  - id: default
+    flags:
+      - -trimpath
+      - -tags
+      - netgo,osusergo
+    ldflags:
+      - -s -w

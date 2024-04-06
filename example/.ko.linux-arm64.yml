@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+defaultBaseImage: cgr.dev/chainguard/static:latest
+defaultPlatforms:
+  - linux/arm64
+builds:
+  - id: default
+    flags:
+      - -trimpath
+      - -tags
+      - netgo,osusergo
+    ldflags:
+      - -s -w

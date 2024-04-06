@@ -4,7 +4,24 @@
 >
 > This is an _example_ and is **NOT** covered by semver compatibility guarantees.
 
-## Windows (Docker)
+## Docker/OCI Images
+
+An example multi-platform docker image is available to test features of this library.
+
+```console
+docker run --rm ghcr.io/tprasadtp/go-autotune
+```
+
+```
+GOOS       : linux
+GOMAXPROCS : 4
+NumCPU     : 4
+GOMEMLIMIT : 9223372036854775807
+```
+
+## Building
+
+## Windows
 
 > [!IMPORTANT]
 >
@@ -50,7 +67,7 @@
   GOMEMLIMIT : 235929600
   ```
 
-## Linux (Systemd)
+## Systemd Services
 
 - Change base directory
 
