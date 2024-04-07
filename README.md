@@ -41,10 +41,10 @@ Only Server 2019, Server 2022 and Server 2025 images/hosts are supported. See
 [Windows container version compatibility] for more info.
 
 ```console
-docker run --rm -it -p 8000:8000 -e PORT=8000 --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
+docker run --rm --isolation=process --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
 ```
 
-![windows-server](./example/screenshots/windows-server.png)
+![windows-stdout](./example/screenshots/windows-stdout.png)
 
 ### Docker (Linux)
 
