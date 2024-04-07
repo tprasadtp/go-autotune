@@ -252,22 +252,13 @@ jobs:
       - name: Verify SLSA Provenance
         run: |
           slsa-verifier \
-            --source-uri "github.com/$GITHUB_REPOSITORY" \
-            verify-image "${EXAMPLE_IMAGE}@${DIGEST}"
-        env:
-          EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
-          DIGEST: ${{ needs.example-images-push.outputs.image-digest }}
+            --source-uri github.com/${{ github.repository }} \
+            verify-image ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
 
       - name: Verify Cosign Signature
         run: |
-          cosign verify "${EXAMPLE_IMAGE}@${DIGEST}" \
-            --certificate-identity-regexp "^${GITHUB_REPO_URL}" \
+          cosign verify ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }} \
+            --certificate-identity-regexp "^https://github.com/${{ github.repository }}" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            --certificate-github-workflow-repository "${GITHUB_REPO_SLUG}" \
-            --certificate-github-workflow-sha "${GITHUB_SHA}"
-        env:
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_REPO_SLUG: ${{ github.repository }}
-          GITHUB_REPO_URL: ${{ github.repositoryUrl }}
-          EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
-          DIGEST: ${{ needs.example-images-push.outputs.image-digest }}
+            --certificate-github-workflow-repository "${{ github.repository }}" \
+            --certificate-github-workflow-sha ${{ github.sha }}
