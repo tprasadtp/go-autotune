@@ -466,6 +466,12 @@ issues:
         - govet
       text: 'shadow: declaration of "err" shadows declaration at'
 
+    # In many cases multiple conditions are expected, keep format consistant.
+    # for both single condition and multi-condition selects.
+    - linters:
+        - gosimple
+      text: "S1000: should use for range instead of for { select {} }"
+
     # Ignore long lines for go generate.
     - source: "^//\\s*go:generate\\s"
       linters:

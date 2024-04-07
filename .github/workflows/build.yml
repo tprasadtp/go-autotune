@@ -1,0 +1,264 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: build
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+          - stable
+          - oldstable
+        os:
+          - macos-latest
+          - ubuntu-22.04
+          - windows-2022
+          - windows-2019
+        exclude:
+          - os: macos-latest
+            go: oldstable
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Go ${{ matrix.go }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Test
+        run: task --verbose test
+        env:
+          DEBUG: 1
+
+      - name: Coverage View Percent
+        run: go tool covdata percent -i .gocover
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}-${{ matrix.go }}
+          path: .gocover
+          retention-days: 30
+
+  # Generate coverage profile from all coverage data.
+  coverage:
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Download and merge coverage data
+        uses: actions/download-artifact@v4
+        with:
+          path: .gocover
+          pattern: coverage-*
+          merge-multiple: true
+
+      - name: Coverage View Percent
+        run: go tool covdata percent -i .gocover
+
+      - name: Create Coverage Profile
+        run: go tool covdata textfmt -i .gocover -o .gocover/coverage.out
+
+      - name: View Coverage Profile
+        run: go tool cover -func .gocover/coverage.out
+
+      - name: Create Coverage Profile (HTML)
+        run: go tool cover -html .gocover/coverage.out -o .gocover/coverage.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: .gocover
+          retention-days: 30
+
+  example-images-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkoutte
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Install Ko
+        uses: ko-build/setup-ko@v0.6
+
+      - name: Build Images
+        run: task --verbose example-images-build
+        env:
+          EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: images
+          path: example/*.tar.gz
+          retention-days: 30
+
+  example-images-push:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - example-images-build
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.get-image-digest.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Install Crane
+        run: go install github.com/google/go-containerregistry/cmd/crane@latest
+
+      - name: Download Images
+        uses: actions/download-artifact@v4
+        with:
+          name: images
+          path: example
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Images
+        run: task --verbose example-images-push
+        env:
+          TAG_LATEST: ${{ github.ref == 'refs/heads/master' && 'true' || 'false' }}
+          EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
+
+      - name: Get Image Digest
+        id: get-image-digest
+        run: |
+          echo "digest=$(crane digest ${EXAMPLE_IMAGE}:${GIT_COMMIT})" >> "$GITHUB_OUTPUT"
+        env:
+          EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
+          GIT_COMMIT: ${{ github.sha }}
+
+  example-images-sign:
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+      id-token: write
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs:
+      - example-images-push
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign Images
+        run: |
+          cosign sign \
+            --yes \
+            --recursive \
+            --oidc-provider=github-actions \
+            ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
+
+  example-images-provenance:
+    if: github.event_name != 'pull_request'
+    needs:
+      - example-images-push
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      packages: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.10.0
+    with:
+      image: ${{ vars.EXAMPLE_IMAGE }}
+      digest: ${{ needs.example-images-push.outputs.image-digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  example-images-verification:
+    if: github.event_name != 'pull_request'
+    needs:
+      - example-images-push
+      - example-images-sign
+      - example-images-provenance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Install SLSA verifier
+        uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
+
+      - name: Verify SLSA Provenance
+        run: |
+          slsa-verifier \
+            --source-uri github.com/${{ github.repository }} \
+            verify-image ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
+
+      - name: Verify Cosign Signature
+        run: |
+          cosign verify ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }} \
+            --certificate-identity-regexp "^https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --certificate-github-workflow-repository "${{ github.repository }}" \
+            --certificate-github-workflow-sha ${{ github.sha }}
