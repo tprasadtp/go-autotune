@@ -211,6 +211,7 @@ jobs:
       - name: Sign Images
         run: |
           cosign sign \
+            --yes \
             --recursive \
             --oidc-provider=github-actions \
             ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
