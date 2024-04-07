@@ -326,8 +326,14 @@ tasks:
       - "push-example-images"
     # All images needs to be specified manually, as task does not support iterating
     # over maps. Additionally, those digests are required for building image index.
-    # i.e manifest lists.
+    # i.e manifest lists. Also, order in which variables are defined is important.
+    # as IMAGE is re-used by other variables.
     vars:
+      IMAGE: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
+      IMG_TAG_SUFFIX: >-
+        {{- if .GIT_TREE_STATE }}
+          {{- printf "-dirty" }}
+        {{- end }}
       GIT_COMMIT:
         sh: git -c log.showSignature=false show --format=%H --quiet HEAD
       GIT_COMMIT_SHORT:
@@ -353,11 +359,6 @@ tasks:
         {{- printf " --manifest=%s@%s" .IMAGE .WINDOWS_2019_AMD64_DIGEST }}
         {{- printf " --manifest=%s@%s" .IMAGE .WINDOWS_2022_AMD64_DIGEST }}
         {{- printf " --manifest=%s@%s" .IMAGE .WINDOWS_2025_AMD64_DIGEST }}
-      IMG_TAG_SUFFIX: >-
-        {{- if .GIT_TREE_STATE }}
-          {{- printf "-dirty" }}
-        {{- end }}
-      IMAGE: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
     cmds:
       - cmd: crane push linux-amd64.tar.gz {{.IMAGE}}@{{.LINUX_AMD64_DIGEST}}
       - cmd: crane push linux-arm64.tar.gz {{.IMAGE}}@{{.LINUX_ARM64_DIGEST}}
@@ -368,8 +369,8 @@ tasks:
       - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT_SHORT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
       - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
       - cmd: >-
-          {{- if and (eq .TAG_LATEST "true") (eq .GIT_TREE_STATE "") }}
+          {{- if and (eq .TAG_LATEST "true") (.GIT_TREE_STATE) }}
             {{- printf `crane index append --tag=%s:latest %s` .IMAGE .MANIFEST_FLAGS }}
           {{- else }}
-            {{- printf `printf "skipped: applying latest tag"` }}
+            {{- printf `printf "skipped: applying latest tag\n"` }}
           {{- end }}
