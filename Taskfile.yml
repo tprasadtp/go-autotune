@@ -271,7 +271,7 @@ tasks:
         - "GIT_COMMIT"
         - "GIT_COMMIT_TS"
     env:
-      KO_DOCKER_REPO: ghcr.io/tprasadtp/go-autotune
+      KO_DOCKER_REPO: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
       KO_CONFIG_PATH: "{{ .KO_CONFIG_PATH }}"
       KOCACHE: "{{.KO_CACHE_DIR}}"
     vars:
@@ -294,6 +294,8 @@ tasks:
       - cmd: ko build --push=false --bare --sbom=none --tarball {{.KO_TARBALL_OUTPUT}} {{.IMAGE_LABEL_FLAGS}}
   example-images-build:
     desc: "Build example docker images"
+    aliases:
+      - "build-example-images"
     vars:
       GIT_COMMIT:
         sh: git -c log.showSignature=false show --format=%H --quiet HEAD
@@ -320,11 +322,12 @@ tasks:
   example-images-push:
     desc: "Push example images. Must run example-images-build first."
     dir: example
+    aliases:
+      - "push-example-images"
     # All images needs to be specified manually, as task does not support iterating
     # over maps. Additionally, those digests are required for building image index.
     # i.e manifest lists.
     vars:
-      IMAGE: ghcr.io/tprasadtp/go-autotune
       GIT_COMMIT:
         sh: git -c log.showSignature=false show --format=%H --quiet HEAD
       GIT_COMMIT_SHORT:
@@ -354,6 +357,7 @@ tasks:
         {{- if .GIT_TREE_STATE }}
           {{- printf "-dirty" }}
         {{- end }}
+      IMAGE: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
     cmds:
       - cmd: crane push linux-amd64.tar.gz {{.IMAGE}}@{{.LINUX_AMD64_DIGEST}}
       - cmd: crane push linux-arm64.tar.gz {{.IMAGE}}@{{.LINUX_ARM64_DIGEST}}
@@ -364,8 +368,8 @@ tasks:
       - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT_SHORT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
       - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
       - cmd: >-
-          {{- if and (eq .TAG_LATEST "true") (.GIT_TREE_STATE) }}
+          {{- if and (eq .TAG_LATEST "true") (eq .GIT_TREE_STATE "") }}
             {{- printf `crane index append --tag=%s:latest %s` .IMAGE .MANIFEST_FLAGS }}
           {{- else }}
-            {{- printf `printf "skipped => applying latest tag"` }}
+            {{- printf `printf "skipped: applying latest tag"` }}
           {{- end }}
