@@ -367,5 +367,5 @@ tasks:
           {{- if and (eq .TAG_LATEST "true") (.GIT_TREE_STATE) }}
             {{- printf `crane index append --tag=%s:latest %s` .IMAGE .MANIFEST_FLAGS }}
           {{- else }}
-            {{- printf `printf "skipped => applying latest tag` }}
+            {{- printf `printf "skipped => applying latest tag"` }}
           {{- end }}
