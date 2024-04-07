@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -28,13 +29,19 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Parse flags.
-	flag.StringVar(&addr, "server", "", "server address")
+	flag.StringVar(&addr, "listen", "", "listen address")
 	flag.Parse()
 
 	// If server is not specified, but PORT is set, listen on all interfaces
 	// on that port.
 	if addr == "" {
 		if v := os.Getenv("PORT"); v != "" {
+			_, err := strconv.ParseInt(v, 10, 16)
+			if err != nil {
+				slog.Error("Invalid PORT",
+					slog.String("PORT", v), slog.Any("err", err))
+				os.Exit(1)
+			}
 			addr = fmt.Sprintf(":%v", v)
 		}
 	}
@@ -79,7 +86,7 @@ func main() {
 					slog.String("client.address", r.RemoteAddr),
 					slog.String("http.method", r.Method),
 					slog.Any("url.full", r.URL),
-					slog.Int("http.response.status_code", http.StatusOK),
+					slog.Int("http.response.status_code", http.StatusNotFound),
 				)
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -106,7 +113,7 @@ func main() {
 	}()
 
 	// Start server.
-	slog.Info("Starting server", slog.String("server.addres", srv.Addr))
+	slog.Info("Starting server", slog.String("server.address", srv.Addr))
 	err := srv.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("Failed to start the server", slog.Any("err", err))
@@ -120,6 +127,7 @@ func main() {
 
 func info(w io.Writer) {
 	fmt.Fprintf(w, "GOOS       : %s\n", runtime.GOOS)
+	fmt.Fprintf(w, "GOARCH     : %s\n", runtime.GOARCH)
 	fmt.Fprintf(w, "GOMAXPROCS : %d\n", runtime.GOMAXPROCS(-1))
 	fmt.Fprintf(w, "NumCPU     : %d\n", runtime.NumCPU())
 	fmt.Fprintf(w, "GOMEMLIMIT : %d\n", debug.SetMemoryLimit(-1))

@@ -266,10 +266,10 @@ tasks:
     requires:
       vars:
         - "KO_CONFIG_PATH"
-        - "KO_IMAGE_TAG"
         - "KO_TARBALL_OUTPUT"
         - "KO_CACHE_DIR"
         - "GIT_COMMIT"
+        - "GIT_COMMIT_TS"
     env:
       KO_DOCKER_REPO: ghcr.io/tprasadtp/go-autotune
       KO_CONFIG_PATH: "{{ .KO_CONFIG_PATH }}"
@@ -278,14 +278,20 @@ tasks:
       GIT_COMMIT:
         sh: git -c log.showSignature=false show --format=%H --quiet HEAD
       IMAGE_LABEL_FLAGS: >-
-        {{- printf "%s %s" " --image-label" `org.opencontainers.image.title=go-autotune`` }}
+        {{- printf "%s %s" " --image-label" `org.opencontainers.image.title=go-autotune` }}
         {{- printf "%s %s" " --image-label" `"org.opencontainers.image.description=Example image for go-autotune"` }}
         {{- printf "%s %s" " --image-label" `"org.opencontainers.image.source=https://github.com/tprasadtp/go-autoune"` }}
         {{- printf "%s %s" " --image-label" `"org.opencontainers.image.vendor=Prasad Tengse <tprasadtp@users.noreply.github.com>"` }}
         {{- printf "%s %s" " --image-label" `"org.opencontainers.image.documentation=https://pkg.go.dev/github.com/tprasadtp/go-autotune/example"` }}
         {{- printf "%s %s" " --image-label" `"io.artifacthub.package.readme-url=https://raw.githubusercontent.com/tprasadtp/go-autotune/master/README.md"` }}
+        {{- if .GIT_COMMIT }}
+          {{- printf "%s %s=%s" " --image-label" "org.opencontainers.image.revision" .GIT_COMMIT }}
+        {{- end }}
+        {{- if .GIT_COMMIT_TS }}
+          {{- printf "%s %s=%s" " --image-label" "org.opencontainers.image.created" .GIT_COMMIT_TS }}
+        {{- end }}
     cmds:
-      - cmd: ko build --push=false --bare --sbom=none --tags={{.KO_IMAGE_TAG}} --tarball {{.KO_TARBALL_OUTPUT}} {{.IMAGE_LABEL_FLAGS}}
+      - cmd: ko build --push=false --bare --sbom=none --tarball {{.KO_TARBALL_OUTPUT}} {{.IMAGE_LABEL_FLAGS}}
   build-example-images:
     desc: "Build example docker images"
     vars:
@@ -293,6 +299,8 @@ tasks:
         sh: git -c log.showSignature=false show --format=%H --quiet HEAD
       GIT_COMMIT_SHORT:
         sh: git -c log.showSignature=false show --format=%h --quiet HEAD
+      GIT_COMMIT_TS:
+        sh: git -c log.showSignature=false show --format=%cI --quiet HEAD
     cmds:
       - for:
           - "linux-amd64"
@@ -301,28 +309,63 @@ tasks:
           - "windows-2019-amd64"
           - "windows-2022-amd64"
           - "windows-2025-amd64"
-          - "windows-20H2-amd64"
         task: internal:build-example-image-tarball
         vars:
           KO_CONFIG_PATH: ".ko.{{.ITEM}}.yml"
-          KO_IMAGE_TAG: "{{.ITEM}}"
           KO_TARBALL_OUTPUT: "{{.ITEM}}.tar.gz"
           KO_CACHE_DIR: ".cache"
           GIT_COMMIT: "{{.GITCOMMIT}}"
           GIT_COMMIT_SHORT: "{{.GIT_COMMIT_SHORT}}"
-  debug:
+          GIT_COMMIT_TS: "{{.GIT_COMMIT_TS}}"
+  push-example-images:
+    desc: "Build and Push example images"
+    dir: example
+    # All images needs to be specified manually, as task does not support iterating
+    # over maps. Additionally, those digests are required for building image index.
+    # i.e manifest lists.
     vars:
+      IMAGE: ghcr.io/tprasadtp/go-autotune
       GIT_COMMIT:
         sh: git -c log.showSignature=false show --format=%H --quiet HEAD
-      IMAGE_LABEL_FLAGS: >-
-        {{- printf  '%s%s' " --image-label=org.opencontainers.image.title=go-autotune" }}
-        {{- printf  '%s%s' " --image-label=org.opencontainers.image.description=Example image for go-autotune" }}
-        {{- printf  '%s%s' " --image-label=org.opencontainers.image.source=https://github.com/tprasadtp/go-autoune" }}
-        {{- printf  '%s%s' " --image-label=org.opencontainers.image.vendor=Prasad Tengse <tprasadtp@users.noreply.github.com>" }}
-        {{- printf  '%s%s' " --image-label=org.opencontainers.image.documentation=https://pkg.go.dev/github.com/tprasadtp/go-autotune/example" }}
-        {{- printf  '%s%s' " --image-label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/tprasadtp/go-autotune/master/README.md" }}
-        {{- if .GIT_COMMIT }}
-          {{- printf  '%s%s' " --image-label=org.opencontainers.image.revision=%s" .GIT_COMMIT }}
+      GIT_COMMIT_SHORT:
+        sh: git -c log.showSignature=false show --format=%h --quiet HEAD
+      GIT_TREE_STATE:
+        sh: git -c log.showSignature=false status --porcelain
+      LINUX_AMD64_DIGEST:
+        sh: crane digest --tarball linux-amd64.tar.gz
+      LINUX_ARM64_DIGEST:
+        sh: crane digest --tarball linux-arm64.tar.gz
+      LINUX_ARMV7_DIGEST:
+        sh: crane digest --tarball linux-armv7.tar.gz
+      WINDOWS_2019_AMD64_DIGEST:
+        sh: crane digest --tarball windows-2019-amd64.tar.gz
+      WINDOWS_2022_AMD64_DIGEST:
+        sh: crane digest --tarball windows-2022-amd64.tar.gz
+      WINDOWS_2025_AMD64_DIGEST:
+        sh: crane digest --tarball windows-2025-amd64.tar.gz
+      MANIFEST_FLAGS: >-
+        {{- printf "--manifest=%s@%s" .IMAGE .LINUX_AMD64_DIGEST }}
+        {{- printf " --manifest=%s@%s" .IMAGE .LINUX_ARM64_DIGEST }}
+        {{- printf " --manifest=%s@%s" .IMAGE .LINUX_ARMV7_DIGEST }}
+        {{- printf " --manifest=%s@%s" .IMAGE .WINDOWS_2019_AMD64_DIGEST }}
+        {{- printf " --manifest=%s@%s" .IMAGE .WINDOWS_2022_AMD64_DIGEST }}
+        {{- printf " --manifest=%s@%s" .IMAGE .WINDOWS_2025_AMD64_DIGEST }}
+      IMG_TAG_SUFFIX: >-
+        {{- if .GIT_TREE_STATE }}
+          {{- printf "-dirty" }}
         {{- end }}
     cmds:
-      - cmd: 'echo "{{.IMAGE_LABEL_FLAGS}}"'
+      - cmd: crane push linux-amd64.tar.gz {{.IMAGE}}@{{.LINUX_AMD64_DIGEST}}
+      - cmd: crane push linux-arm64.tar.gz {{.IMAGE}}@{{.LINUX_ARM64_DIGEST}}
+      - cmd: crane push linux-armv7.tar.gz {{.IMAGE}}@{{.LINUX_ARMV7_DIGEST}}
+      - cmd: crane push windows-2019-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2019_AMD64_DIGEST}}
+      - cmd: crane push windows-2022-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2022_AMD64_DIGEST}}
+      - cmd: crane push windows-2025-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2025_AMD64_DIGEST}}
+      - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT_SHORT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
+      - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
+      - cmd: >-
+          {{- if and (eq .TAG_LATEST "true") (.GIT_TREE_STATE) }}
+            {{- printf `crane index append --tag=%s:latest %s` .IMAGE .MANIFEST_FLAGS }}
+          {{- else }}
+            {{- printf "skipped => applying latest tag" }}
+          {{- end }}

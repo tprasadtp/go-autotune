@@ -4,68 +4,32 @@
 >
 > This is an _example_ and is **NOT** covered by semver compatibility guarantees.
 
-## Docker/OCI Images
+If `PORT` env variable is specified and is a valid port, a simple http server
+is started on that port, listening on all available interfaces. Alternatively,
+`-listen` flag can be used to specify listening address. If both are not specified,
+then container simply prints `GOMAXPROCS` and `GOMEMLIMIT` values and some runtime/platform
+data to stdout and exits.
 
-An example multi-platform docker image is available to test features of this library.
+## Docker (Windows)
+
+Only Server 2019, Server 2022 and Server 2025 images/hosts are supported. See
+[Windows container version compatibility] for more info.
 
 ```console
-docker run --rm ghcr.io/tprasadtp/go-autotune
+docker run --rm -it -p 8000:8000 -e PORT=8000 --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
 ```
 
+![windows-server](./screenshots/windows-server.png)
+
+## Docker (Linux)
+
+Only amd64, arm64 and armv7 platforms are supported.
+
+```console
+docker run --rm --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
 ```
-GOOS       : linux
-GOMAXPROCS : 4
-NumCPU     : 4
-GOMEMLIMIT : 9223372036854775807
-```
 
-## Building
-
-## Windows
-
-> [!IMPORTANT]
->
-> This example uses `mcr.microsoft.com/windows/nanoserver:2004` as the base image,
-> change it to suit your base OS. See [Windows container version compatibility]
-> for more info.
-
-- Change base directory
-
-  ```powershell
-  cd example
-  ```
-
-- Build example go binary
-
-  ```console
-  go build -o example.exe example.go
-  ```
-
-- Run container with process isolation
-
-  ```powershell
-  docker run --isolation=process --rm --user=ContainerAdministrator --memory=100M --cpus=2 -v $PWD\:C:\app:ro mcr.microsoft.com/windows/nanoserver:2004 C:\app\example.exe
-  ```
-
-  ```console
-  GOOS       : windows
-  GOMAXPROCS : 2
-  NumCPU     : 4
-  GOMEMLIMIT : 47185920
-  ```
-
-- Run container with Hyper-V isolation
-
-  ```powershell
-  docker run --isolation=hyperv --rm --user=ContainerAdministrator --memory=250M --cpus=2 -v $PWD\:C:\app:ro mcr.microsoft.com/windows/nanoserver:2004 C:\app\example.exe
-  ```
-
-  ```console
-  GOOS       : windows
-  GOMAXPROCS : 2
-  NumCPU     : 2
-  GOMEMLIMIT : 235929600
-  ```
+![linux-stdout](./screenshots/linux-stdout.png)
 
 ## Systemd Services
 
@@ -111,46 +75,6 @@ GOMEMLIMIT : 9223372036854775807
   GOMAXPROCS : 2
   NumCPU     : 4
   GOMEMLIMIT : 262144000
-  ```
-
-## Linux (Docker)
-
-- Change base directory
-
-  ```console
-  cd example
-  ```
-
-- Build example go binary
-
-  ```bash
-  go build -o example example.go
-  ```
-
-- Build docker image
-
-  ```bash
-  docker build \
-    --tag go-autotune-example \
-    .
-  ```
-
-- Run docker image
-
-  ```bash
-  docker run \
-    --rm \
-    --network=none \
-    --cpus=3 \
-    --memory=500M \
-    go-autotune-example:latest
-  ```
-
-  ```
-  GOOS       : linux
-  GOMAXPROCS : 3
-  NumCPU     : 4
-  GOMEMLIMIT : 471859200
   ```
 
 [Windows container version compatibility]: https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility
