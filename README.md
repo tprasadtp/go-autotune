@@ -41,21 +41,18 @@ Only Server 2019, Server 2022 and Server 2025 images/hosts are supported. See
 [Windows container version compatibility] for more info.
 
 ```console
-docker run --rm --isolation=process --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
+docker run --rm --isolation=process --cpus=2 --memory=250M ghcr.io/tprasadtp/go-autotune
 ```
 
 ![windows-stdout](./example/screenshots/windows-stdout.png)
 
 ### Docker (Linux)
 
-Only amd64, arm64 and armv7 platforms are supported.
-
 ```console
-docker run --rm --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
+docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 ```
 
-![linux-stdout](./example/screenshots/linux-stdout.png)
-
+![linux-systemd-docker](./example/screenshots/linux-docker-systemd.png)
 
 ## Requirements (Linux)
 
