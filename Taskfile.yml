@@ -292,7 +292,7 @@ tasks:
         {{- end }}
     cmds:
       - cmd: ko build --push=false --bare --sbom=none --tarball {{.KO_TARBALL_OUTPUT}} {{.IMAGE_LABEL_FLAGS}}
-  build-example-images:
+  example-images-build:
     desc: "Build example docker images"
     vars:
       GIT_COMMIT:
@@ -317,8 +317,8 @@ tasks:
           GIT_COMMIT: "{{.GITCOMMIT}}"
           GIT_COMMIT_SHORT: "{{.GIT_COMMIT_SHORT}}"
           GIT_COMMIT_TS: "{{.GIT_COMMIT_TS}}"
-  push-example-images:
-    desc: "Build and Push example images"
+  example-images-push:
+    desc: "Push example images. Must run example-images-build first."
     dir: example
     # All images needs to be specified manually, as task does not support iterating
     # over maps. Additionally, those digests are required for building image index.
@@ -367,5 +367,5 @@ tasks:
           {{- if and (eq .TAG_LATEST "true") (.GIT_TREE_STATE) }}
             {{- printf `crane index append --tag=%s:latest %s` .IMAGE .MANIFEST_FLAGS }}
           {{- else }}
-            {{- printf "skipped => applying latest tag" }}
+            {{- printf `printf "skipped => applying latest tag` }}
           {{- end }}

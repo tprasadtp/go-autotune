@@ -21,6 +21,9 @@ docker run --rm -it -p 8000:8000 -e PORT=8000 --cpus=2 --memory=100M ghcr.io/tpr
 
 ![windows-server](./screenshots/windows-server.png)
 
+![windows-stdout](./screenshots/windows-stdout.png)
+
+
 ## Docker (Linux)
 
 Only amd64, arm64 and armv7 platforms are supported.

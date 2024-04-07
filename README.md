@@ -5,7 +5,7 @@
 [![go-reference](https://img.shields.io/badge/godoc-reference-5272b4?labelColor=3a3a3a&logo=go&logoColor=959da5)](https://pkg.go.dev/github.com/tprasadtp/go-autotune)
 [![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-autotune?labelColor=3a3a3a&color=00758D&label=go&logo=go&logoColor=959da5)](https://github.com/tprasadtp/go-autotune/blob/master/go.mod)
 [![license](https://img.shields.io/github/license/tprasadtp/go-autotune?labelColor=3a3a3a&color=00ADD8&logo=github&logoColor=959da5)](https://github.com/tprasadtp/go-autotune/blob/master/LICENSE)
-[![test](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/test.yml)
+[![build](https://github.com/tprasadtp/go-autotune/actions/workflows/build.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/build.yml)
 [![lint](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/lint.yml)
 [![release](https://github.com/tprasadtp/go-autotune/actions/workflows/release.yml/badge.svg)](https://github.com/tprasadtp/go-autotune/actions/workflows/release.yml)
 [![version](https://img.shields.io/github/v/tag/tprasadtp/go-autotune?label=version&sort=semver&labelColor=3a3a3a&color=CE3262&logo=semver&logoColor=959da5)](https://github.com/tprasadtp/go-autotune/releases)
@@ -32,6 +32,30 @@ import (
 ```
 
 See [API docs] and [example](./example/README.md) for more info.
+
+## Example
+
+### Docker (Windows)
+
+Only Server 2019, Server 2022 and Server 2025 images/hosts are supported. See
+[Windows container version compatibility] for more info.
+
+```console
+docker run --rm -it -p 8000:8000 -e PORT=8000 --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
+```
+
+![windows-server](./example/screenshots/windows-server.png)
+
+### Docker (Linux)
+
+Only amd64, arm64 and armv7 platforms are supported.
+
+```console
+docker run --rm --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
+```
+
+![linux-stdout](./example/screenshots/linux-stdout.png)
+
 
 ## Requirements (Linux)
 
@@ -127,3 +151,4 @@ go test -cover -v ./...
 [pkg-memlimit]: https://https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit
 [API docs]: https://pkg.go.dev/github.com/tprasadtp/go-autotune
 [k8s-resize-docs]: https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/
+[Windows container version compatibility]: https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility
