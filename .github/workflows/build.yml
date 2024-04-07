@@ -122,7 +122,7 @@ jobs:
         uses: ko-build/setup-ko@v0.6
 
       - name: Build Images
-        run: task --verbose build-example-images
+        run: task --verbose example-images-build
 
       - uses: actions/upload-artifact@v4
         with:
@@ -174,7 +174,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Images
-        run: task --verbose push-example-images
+        run: task --verbose example-images-push
         env:
           TAG_LATEST: ${{ github.ref == 'refs/heads/master' && 'true' || 'false' }}
 
