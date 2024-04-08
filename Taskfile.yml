@@ -378,7 +378,7 @@ tasks:
       - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
       - cmd: >-
           {{- if eq .TAG_LATEST "true" }}
-            {{- printf `crane index append --tag=%s:latest %s` .IMAGE .MANIFEST_FLAGS }}
+            {{- printf `crane index append --tag=%s:latest%s %s` .IMAGE .IMAGE_TAG_SUFFIX .MANIFEST_FLAGS }}
           {{- else }}TAG_LATEST
             {{- printf `printf "skipped: applying latest tag\n"` }}
           {{- end }}

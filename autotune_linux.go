@@ -32,7 +32,6 @@ func init() {
 			//nolint:wrapcheck // ignore
 			return 0, err
 		}
-		//nolint:wrapcheck // ignore
 		return platform.GetCPUQuota(platform.WithCgroupInterfacePath(cgroupPath))
 	}
 
@@ -41,7 +40,6 @@ func init() {
 			//nolint:wrapcheck // ignore
 			return 0, 0, err
 		}
-		//nolint:wrapcheck // ignore
 		return platform.GetMemoryQuota(platform.WithCgroupInterfacePath(cgroupPath))
 	}
 

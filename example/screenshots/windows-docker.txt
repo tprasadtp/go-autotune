@@ -1,0 +1,28 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved
+
+# Run the container with process isolation.
+PS C:\Users\User> docker run --rm --isolation=process --cpus=1.5 -m=250M ghcr.io/tprasadtp/go-autotune
+GOOS       : windows
+GOARCH     : amd64
+GOMAXPROCS : 2
+NumCPU     : 4
+GOMEMLIMIT : 235929600
+
+# Run the container with Hyper-V isolation.
+# This may require installing Hyper-V role on this server.
+PS C:\Users\User> docker run --rm --isolation=hyperv --cpus=1.5 -m=250M ghcr.io/tprasadtp/go-autotune
+GOOS       : windows
+GOARCH     : amd64
+GOMAXPROCS : 2
+NumCPU     : 2
+GOMEMLIMIT : 235929600
+
+# Disable automatically setting GOMAXPROCS and GOMEMLIMIT via GOAUTOTUNE environment variable.
+# Note that GOMEMLIMIT is set to math.MaxInt64 and GOMAXPROCS is same as runtime.NumCPU()
+PS C:\Users\User> docker run --rm -e=GOAUTOTUNE=false --cpus=1.5 -m=250M ghcr.io/tprasadtp/go-autotune
+GOOS       : windows
+GOARCH     : amd64
+GOMAXPROCS : 4
+NumCPU     : 4
+GOMEMLIMIT : 9223372036854775807

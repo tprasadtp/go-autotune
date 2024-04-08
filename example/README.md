@@ -12,72 +12,66 @@ data to stdout and exits.
 
 ## Docker (Windows)
 
-Only Server 2019, Server 2022 and Server 2025 images/hosts are supported. See
-[Windows container version compatibility] for more info.
+Though this library works on Windows 10 or later and Windows 2016 or later
+_example docker images_ are only provided for Server 2019, Server 2022 and Server 2025.
+because of [Windows container version compatibility].
 
 ```console
-docker run --rm -it -p 8000:8000 -e PORT=8000 --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
+docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 ```
 
-![windows-server](./screenshots/windows-server.png)
+![windows-stdout](./screenshots/windows-docker.svg)
 
-![windows-stdout](./screenshots/windows-stdout.png)
+![windows-server](./screenshots/windows-http-server.png)
 
 
 ## Docker (Linux)
-
-Only amd64, arm64 and armv7 platforms are supported.
 
 ```console
 docker run --rm --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
 ```
 
-![linux-stdout](./screenshots/linux-stdout.png)
+![linux-stdout](./screenshots/linux-docker.svg)
 
 ## Systemd Services
 
-- Change base directory
-
-  ```console
-  cd example
-  ```
-
-- Build example go binary
+- Clone this repository.
 
   ```bash
-  go build -o example example.go
+  git clone --depth=1 https://github.com/tprasadtp/go-autotune
   ```
 
-- Verify CPU and Memory controller delegation is available for user level units.
+- Checkout the repository.
 
   ```bash
-  systemctl show user@$(id -u).service --property=DelegateControllers
+  cd go-autotune
   ```
 
-  should show something like below. It **must contain** both `cpu` and `memory`.
-
-  ```console
-  DelegateControllers=cpu memory pids
-  ```
-
-- Run with with resource limits
+- Build the example binary and install it to `~/.local/bin` as "go-autotune".
 
   ```bash
-  systemd-run \
-    --user \
-    --pipe \
-    --quiet \
-    --property="CPUQuota=150%" \
-    --property=MemoryHigh=250M \
-    --property=MemoryMax=300M \
-    example
+  go build -trimpath \
+    -ldflags='-w -s' \
+    -tags=osusergo,netgo \
+    -o ~/.local/bin/go-autotune \
+    github.com/tprasadtp/go-autotune/example
   ```
 
+- Verify that CPU and memory controllers are available for user level units.
+  If output does not contain strings `cpu` and `memory`, CPU controllers are not available for
+  user level units. Install the binary to a root accessible location (like `/usr/local/bin`)
+  and run the `systemd-run` commands without the `--user` flag.
+
+  ```bash
+  systemctl show user@$(id -u).service -P DelegateControllers
   ```
-  GOOS       : linux
-  GOMAXPROCS : 2
-  NumCPU     : 4
-  GOMEMLIMIT : 262144000
+
+- Run the example binary as a transient unit with with resource limits applied.
+
+  ```bash
+  systemd-run -Pq --user -p "CPUQuota=150%" -p MemoryHigh=250M -p MemoryMax=300M go-autotune
   ```
+
+  ![linux-systemd](./screenshots/linux-systemd-run.svg)
 
 [Windows container version compatibility]: https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility

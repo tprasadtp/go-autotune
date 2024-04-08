@@ -1,0 +1,22 @@
+# Clone this repository.
+user@fedora:~/Git$ git clone --depth=1 https://github.com/tprasadtp/go-autotune
+Cloning into 'go-autotune'...
+remote: Enumerating objects: 276, done.
+remote: Counting objects: 100% (276/276), done.
+remote: Compressing objects: 100% (144/144), done.
+remote: Total 276 (delta 57), reused 226 (delta 50), pack-reused 0
+Receiving objects: 100% (276/276), 530.54 KiB | 2.35 MiB/s, done.
+Resolving deltas: 100% (57/57), done.
+
+# Checkout the repository.
+user@fedora:~/Git$ cd go-autotune/
+
+# Build the example binary and install it to ~/.local/bin as "go-autotune".
+# Please ensure ~/.local/bin is included in your $PATH.
+user@fedora:~/Git/go-autotune$ go build -trimpath -ldflags='-w -s' -tags=osusergo,netgo
+-o ~/.local/bin/go-autotune github.com/tprasadtp/go-autotune/example
+
+# Verify that CPU and memory controllers are available for user level units.
+# This requires systemd 252 or later.
+user@fedora:~/Git/go-autotune$ systemctl show user@$(id -u).service -P DelegateControllers
+cpu memory pids

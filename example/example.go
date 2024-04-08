@@ -21,8 +21,13 @@ import (
 	"syscall"
 	"time"
 
+	_ "embed"
+
 	_ "github.com/tprasadtp/go-autotune"
 )
+
+//go:embed favicon.ico
+var favicon []byte
 
 func main() {
 	var addr string
@@ -63,10 +68,10 @@ func main() {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != http.MethodGet {
 				slog.Warn("Request",
-					slog.String("client.address", r.RemoteAddr),
-					slog.String("http.method", r.Method),
-					slog.Any("url.full", r.URL),
-					slog.Int("http.response.status_code", http.StatusMethodNotAllowed),
+					slog.String("client", r.RemoteAddr),
+					slog.String("method", r.Method),
+					slog.Any("url", r.URL),
+					slog.Int("status", http.StatusMethodNotAllowed),
 				)
 				w.WriteHeader(http.StatusMethodNotAllowed)
 				return
@@ -75,18 +80,28 @@ func main() {
 			switch r.URL.Path {
 			case "/", "":
 				slog.Info("Request",
-					slog.String("client.address", r.RemoteAddr),
-					slog.String("http.method", r.Method),
-					slog.Any("url.full", r.URL),
-					slog.Int("http.response.status_code", http.StatusOK),
+					slog.String("client", r.RemoteAddr),
+					slog.String("method", r.Method),
+					slog.Any("url", r.URL),
+					slog.Int("status", http.StatusOK),
 				)
+				w.Header().Add("Content-Type", "text/plain")
 				info(w)
+			case "/favicon.ico":
+				slog.Info("Request",
+					slog.String("client", r.RemoteAddr),
+					slog.String("method", r.Method),
+					slog.Any("url", r.URL),
+					slog.Int("status", http.StatusOK),
+				)
+				w.Header().Add("Content-Type", "image/x-icon")
+				_, _ = w.Write(favicon)
 			default:
 				slog.Warn("Request",
-					slog.String("client.address", r.RemoteAddr),
-					slog.String("http.method", r.Method),
-					slog.Any("url.full", r.URL),
-					slog.Int("http.response.status_code", http.StatusNotFound),
+					slog.String("client", r.RemoteAddr),
+					slog.String("method", r.Method),
+					slog.Any("url", r.URL),
+					slog.Int("status", http.StatusNotFound),
 				)
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -102,7 +117,7 @@ func main() {
 			select {
 			// on cancel, stop the server and return.
 			case <-ctx.Done():
-				slog.Info("Stopping server", "server.address", srv.Addr)
+				slog.Info("Stopping server", "server", srv.Addr)
 				err = srv.Shutdown(ctx)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {
 					slog.Error("Failed to shutdown server", slog.Any("err", err))
@@ -113,7 +128,7 @@ func main() {
 	}()
 
 	// Start server.
-	slog.Info("Starting server", slog.String("server.address", srv.Addr))
+	slog.Info("Starting server", slog.String("server", srv.Addr))
 	err := srv.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("Failed to start the server", slog.Any("err", err))
@@ -122,7 +137,7 @@ func main() {
 	}
 
 	wg.Wait()
-	slog.Info("Server stopped", slog.String("addr", srv.Addr))
+	slog.Info("Server stopped", slog.String("server", srv.Addr))
 }
 
 func info(w io.Writer) {

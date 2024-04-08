@@ -1,0 +1,17 @@
+# Run the example container.
+user@fedora:~$ docker run --rm --cpus=1.5 -m=250M ghcr.io/tprasadtp/go-autotune
+GOOS       : linux
+GOARCH     : amd64
+GOMAXPROCS : 2
+NumCPU     : 4
+GOMEMLIMIT : 235929600
+
+# Disable automatically setting GOMAXPROCS and GOMEMLIMIT via GOAUTOTUNE environment variable.
+# Note that GOMEMLIMIT is set to math.MaxInt64 and GOMAXPROCS is same as runtime.NumCPU()
+# and specified CPU and memory limits are ignored.
+user@fedora:~$ docker run --rm --cpus=1.5 -m=250M -e=GOAUTOTUNE=0 ghcr.io/tprasadtp/go-autotune
+GOOS       : linux
+GOARCH     : amd64
+GOMAXPROCS : 4
+NumCPU     : 4
+GOMEMLIMIT : 9223372036854775807

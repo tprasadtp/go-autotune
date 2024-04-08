@@ -33,27 +33,6 @@ import (
 
 See [API docs] and [example](./example/README.md) for more info.
 
-## Example
-
-### Docker (Windows)
-
-Only Server 2019, Server 2022 and Server 2025 images/hosts are supported. See
-[Windows container version compatibility] for more info.
-
-```console
-docker run --rm --isolation=process --cpus=2 --memory=250M ghcr.io/tprasadtp/go-autotune
-```
-
-![windows-stdout](./example/screenshots/windows-stdout.png)
-
-### Docker (Linux)
-
-```console
-docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
-```
-
-![linux-systemd-docker](./example/screenshots/linux-docker-systemd.png)
-
 ## Requirements (Linux)
 
 This module _only supports cgroups V2_. Following Linux distributions enable it by default.
@@ -92,7 +71,7 @@ See [Kubernetes docs][k8s-resize-docs] for more info.
 
 ## Incompatible Modules
 
-This module is incompatible with other modules which also tweak [`GOMAXPROCS`][GOMAXPROCS]
+This module is incompatible with other modules which _also_ tweak [`GOMAXPROCS`][GOMAXPROCS]
 and [`GOMEMLIMIT`][GOMEMLIMIT]. Following [golangci-lint] snippet might help avoid any
 issues.
 
@@ -119,6 +98,24 @@ linters:
     # <snip other enabled linters>
     - gomodguard
 ```
+
+## Example Docker Image
+
+Example docker images are only provided for limited number of platforms/architectures.
+However the library will work on all platforms which meet the requirements specified above,
+even when running outside of containers. See [example](./example/README.md) for more info.
+
+```console
+docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
+```
+
+### Windows
+
+![windows-docker](./example/screenshots/windows-docker.svg)
+
+### Linux
+
+![linux-docker](./example/screenshots/linux-docker.svg)
 
 ## Testing
 

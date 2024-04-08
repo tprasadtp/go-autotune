@@ -1,0 +1,16 @@
+# Run the example binary as a transient unit with with resource limits applied.
+# Note that only MemoryHigh is considered, as it is less than MemoryMax - (MemoryMax*ReservePercent).
+user@fedora:~$ systemd-run -Pq --user -p "CPUQuota=150%" -p MemoryHigh=250M -p MemoryMax=300M go-autotune
+GOOS       : linux
+GOARCH     : amd64
+GOMAXPROCS : 2
+NumCPU     : 4
+GOMEMLIMIT : 262144000
+
+# In this example only MemoryMax is specified. GOMEMLIMIT is set to MemoryMax - (MemoryMax*ReservePercent).
+user@fedora:~$ systemd-run -Pq --user -p "CPUQuota=150%" -p MemoryMax=250M go-autotune
+GOOS       : linux
+GOARCH     : amd64
+GOMAXPROCS : 2
+NumCPU     : 4
+GOMEMLIMIT : 235929600
