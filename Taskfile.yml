@@ -251,6 +251,14 @@ tasks:
         vars:
           DIRECTORY: '{{ joinPath .ROOT_DIR "bin" }}'
           PATTERN: "example"
+      - task: internal:rm-file-glob
+        vars:
+          DIRECTORY: '{{ joinPath .ROOT_DIR "example" }}'
+          PATTERN: "*.tar.gz"
+      - task: internal:rm-file-glob
+        vars:
+          DIRECTORY: '{{ joinPath .ROOT_DIR "example" }}'
+          PATTERN: "*.tar"
       - task: internal:rmdir
         vars:
           DIRECTORY: "{{ .ITEM }}"
