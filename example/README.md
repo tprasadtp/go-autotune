@@ -10,28 +10,37 @@ is started on that port, listening on all available interfaces. Alternatively,
 then container simply prints `GOMAXPROCS` and `GOMEMLIMIT` values and some runtime/platform
 data to stdout and exits.
 
-## Docker (Windows)
+## Docker
 
-Though this library works on Windows 10 or later and Windows 2016 or later
-_example docker images_ are only provided for Server 2019, Server 2022 and Server 2025.
-because of [Windows container version compatibility].
+Example docker images are only provided for limited number of platforms/architectures
+and are signed and provide SLSA level 3 provenance.
+
+<div align="center">
+
+[![slsa-level3-badge](./images/slsa-level3-logo.svg)](https://slsa.dev/spec/v1.0/levels#build-l3)
+
+</div>
+
 
 ```console
 docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 ```
 
+### Docker (Linux)
+
+![linux-stdout](./screenshots/linux-docker.svg)
+
+### Docker (Windows)
+
+> [!IMPORTANT]
+>
+> Though this library works on Windows 10 or later and Windows 2016 or later
+> _example docker images_ are only provided for Server 2019, Server 2022 and
+> Server 2025 because of [Windows container version compatibility].
+
 ![windows-stdout](./screenshots/windows-docker.svg)
 
 ![windows-server](./screenshots/windows-http-server.png)
-
-
-## Docker (Linux)
-
-```console
-docker run --rm --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
-```
-
-![linux-stdout](./screenshots/linux-docker.svg)
 
 ## Systemd
 

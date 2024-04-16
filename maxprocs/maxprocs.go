@@ -107,7 +107,7 @@ func Configure(opts ...Option) {
 		return
 	}
 
-	// Get cgroup Info.
+	// Get CPU quota.
 	quota, err := cfg.CPUQuotaFunc()
 	if err != nil {
 		// Log if error is not [errors.ErrUnsupported].
@@ -146,6 +146,6 @@ func Configure(opts ...Option) {
 			)
 		}
 	} else {
-		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "cpu quota is not defined")
+		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "CPU quota is not defined")
 	}
 }

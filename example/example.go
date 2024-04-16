@@ -54,7 +54,7 @@ func main() {
 	// Server is not specified, just write to stdout.
 	if addr == "" {
 		info(os.Stdout)
-		os.Exit(0)
+		return
 	}
 
 	// Start server if an address is specified.

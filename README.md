@@ -23,6 +23,8 @@ Supports _both_ Windows and Linux.
 
 ## Usage
 
+Blank import `github.com/tprasadtp/go-autotune` in your main package.
+
 ```go
 package main
 
@@ -31,7 +33,7 @@ import (
 )
 ```
 
-See [API docs] and [example] for more info.
+See [API docs] and [example](./example/) for more info.
 
 ## Requirements (Linux)
 
@@ -109,10 +111,6 @@ docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 ### Linux
 
 [![linux-docker](./example/screenshots/linux-docker.svg)][example]
-
-### Systemd
-
-[![linux-systemd](./example/screenshots/linux-systemd-run.svg)][example]
 
 ## Testing
 

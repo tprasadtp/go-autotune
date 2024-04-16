@@ -129,6 +129,7 @@ func Configure(opts ...Option) {
 	}
 
 	// Set default ReservePercent value and ignore invalid values.
+	// If MaxReservePercent is less than 0, use default values.
 	switch {
 	case cfg.MaxReservePercent < 0:
 		if max >= 5*parse.GiByte {

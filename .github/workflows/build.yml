@@ -10,6 +10,8 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   test:
     strategy:
@@ -142,7 +144,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image-digest: ${{ steps.get-image-digest.outputs.digest }}
+      image-digest: ${{ steps.image-digest.outputs.digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -180,7 +182,7 @@ jobs:
           EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
 
       - name: Get Image Digest
-        id: get-image-digest
+        id: image-digest
         run: |
           echo "digest=$(crane digest ${EXAMPLE_IMAGE}:${GIT_COMMIT})" >> "$GITHUB_OUTPUT"
         env:
@@ -209,12 +211,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sign Images
-        run: |
-          cosign sign \
-            --yes \
-            --recursive \
-            --oidc-provider=github-actions \
-            ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
+        run: >-
+          cosign sign
+          --yes
+          --recursive
+          --oidc-provider=github-actions
+          ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
 
   example-images-provenance:
     if: github.event_name != 'pull_request'
@@ -250,15 +252,15 @@ jobs:
         uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
 
       - name: Verify SLSA Provenance
-        run: |
-          slsa-verifier \
-            --source-uri github.com/${{ github.repository }} \
-            verify-image ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
+        run: >-
+          slsa-verifier
+          --source-uri github.com/${{ github.repository }}
+          verify-image ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
 
       - name: Verify Cosign Signature
-        run: |
-          cosign verify ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }} \
-            --certificate-identity-regexp "^https://github.com/${{ github.repository }}" \
-            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            --certificate-github-workflow-repository "${{ github.repository }}" \
-            --certificate-github-workflow-sha ${{ github.sha }}
+        run: >-
+          cosign verify ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
+          --certificate-identity-regexp "^https://github.com/${{ github.repository }}"
+          --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          --certificate-github-workflow-repository "${{ github.repository }}"
+          --certificate-github-workflow-sha ${{ github.sha }}

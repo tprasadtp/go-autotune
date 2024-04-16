@@ -12,6 +12,8 @@ on:
   workflow_dispatch:
   pull_request:
 
+permissions: {}
+
 jobs:
   snapshot:
     if: ${{ github.ref_type == 'branch' }}
