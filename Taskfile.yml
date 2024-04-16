@@ -338,10 +338,6 @@ tasks:
     # as IMAGE is re-used by other variables.
     vars:
       IMAGE: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
-      IMG_TAG_SUFFIX: >-
-        {{- if .GIT_TREE_STATE }}
-          {{- printf "-dirty" }}
-        {{- end }}
       GIT_COMMIT:
         sh: git -c log.showSignature=false show --format=%H --quiet HEAD
       GIT_COMMIT_SHORT:
@@ -360,6 +356,10 @@ tasks:
         sh: crane digest --tarball windows-2022-amd64.tar.gz
       WINDOWS_2025_AMD64_DIGEST:
         sh: crane digest --tarball windows-2025-amd64.tar.gz
+      IMG_TAG_SUFFIX: >-
+        {{- if .GIT_TREE_STATE }}
+          {{- printf "-dirty" }}
+        {{- end }}
       MANIFEST_FLAGS: >-
         {{- printf "--manifest=%s@%s" .IMAGE .LINUX_AMD64_DIGEST }}
         {{- printf " --manifest=%s@%s" .IMAGE .LINUX_ARM64_DIGEST }}
@@ -374,11 +374,11 @@ tasks:
       - cmd: crane push windows-2019-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2019_AMD64_DIGEST}}
       - cmd: crane push windows-2022-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2022_AMD64_DIGEST}}
       - cmd: crane push windows-2025-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2025_AMD64_DIGEST}}
-      - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT_SHORT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
-      - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT}}{{.IMAGE_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
+      - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT_SHORT}}{{.IMG_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
+      - cmd: crane index append --tag={{.IMAGE}}:{{.GIT_COMMIT}}{{.IMG_TAG_SUFFIX}} {{.MANIFEST_FLAGS}}
       - cmd: >-
           {{- if eq .TAG_LATEST "true" }}
-            {{- printf `crane index append --tag=%s:latest %s` .IMAGE .MANIFEST_FLAGS }}
-          {{- else }}TAG_LATEST
+            {{- printf `crane index append --tag=%s:latest%s %s` .IMAGE .IMG_TAG_SUFFIX .MANIFEST_FLAGS }}
+          {{- else }}
             {{- printf `printf "skipped: applying latest tag\n"` }}
           {{- end }}
