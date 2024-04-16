@@ -33,7 +33,7 @@ docker run --rm --cpus=2 --memory=100M ghcr.io/tprasadtp/go-autotune
 
 ![linux-stdout](./screenshots/linux-docker.svg)
 
-## Systemd Services
+## Systemd
 
 - Clone this repository.
 

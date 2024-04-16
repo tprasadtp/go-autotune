@@ -18,7 +18,9 @@ import (
 )
 
 // AutotuneInBackground checks resource limits and sets GOMAXPROCS and GOMEMLIMIT
-// at specified intervals.
+// at specified intervals. This may be useful for in place resource resize
+// See https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/
+// for kubernetes docs.
 //
 // If GOAUTOTUNE env variable set to false value, disable it.
 func AutotuneInBackground(ctx context.Context, wg *sync.WaitGroup, logger *slog.Logger, interval time.Duration) {
@@ -67,7 +69,8 @@ func Example_inPlaceResourceResize() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// Change interval to what your application requires.
+	// Change this interval to what your application requires.
+	// Avoid re-configuring too many times.
 	interval := time.Second * 30
 	AutotuneInBackground(ctx, &wg, slog.Default(), interval)
 
