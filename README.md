@@ -31,7 +31,7 @@ import (
 )
 ```
 
-See [API docs] and [example](./example/README.md) for more info.
+See [API docs] and [example] for more info.
 
 ## Requirements (Linux)
 
@@ -61,13 +61,6 @@ This also affects rootless docker and podman.
 
 To disable automatic configuration at runtime (for compiled binaries),
 Set `GOAUTOTUNE` environment variable to `0` or `false`.
-
-## Supporting Kubernetes In-place Resource Resize
-
-This can be done using [time.Ticker](https://pkg.go.dev/time#Ticker)
-and a background goroutine. See [API docs] for examples.
-
-See [Kubernetes docs][k8s-resize-docs] for more info.
 
 ## Incompatible Modules
 
@@ -99,7 +92,7 @@ linters:
     - gomodguard
 ```
 
-## Example Docker Image
+## Example Docker Images
 
 Example docker images are only provided for limited number of platforms/architectures.
 However the library will work on all platforms which meet the requirements specified above,
@@ -111,11 +104,15 @@ docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 
 ### Windows
 
-![windows-docker](./example/screenshots/windows-docker.svg)
+[![windows-docker](./example/screenshots/windows-docker.svg)][example]
 
 ### Linux
 
-![linux-docker](./example/screenshots/linux-docker.svg)
+[![linux-docker](./example/screenshots/linux-docker.svg)][example]
+
+### Systemd
+
+[![linux-systemd](./example/screenshots/linux-systemd-run.svg)][example]
 
 ## Testing
 
@@ -128,15 +125,15 @@ go test -cover -v ./...
 
 > [!IMPORTANT]
 >
-> Tests extensively use [systemd-run] and [Job Objects API] on Linux and Windows
+> Tests extensively use [systemd-run] on Linux and [Job Objects API] on Windows
 > respectively. Thus, running unit tests/integration tests within containers is
 > _not supported_.
-
 
 [GOMEMLIMIT]: https://pkg.go.dev/runtime/debug#SetMemoryLimit
 [GOMAXPROCS]: https://pkg.go.dev/runtime#GOMAXPROCS
 [golangci-lint]: https://golangci-lint.run/
 [b8df7f8]: https://github.com/systemd/systemd/pull/23887
+[example]: ./example/README.md
 [systemd-run]: https://www.freedesktop.org/software/systemd/man/latest/systemd-run.html
 [Job Objects API]: https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects
 [enable-cpu-delegation]: https://github.com/systemd/systemd/issues/12362#issuecomment-485762928
@@ -144,5 +141,4 @@ go test -cover -v ./...
 [pkg-maxprocs]: https://https://pkg.go.dev/github.com/tprasadtp/go-autotune/maxprocs
 [pkg-memlimit]: https://https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit
 [API docs]: https://pkg.go.dev/github.com/tprasadtp/go-autotune
-[k8s-resize-docs]: https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/
 [Windows container version compatibility]: https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility

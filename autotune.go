@@ -81,6 +81,11 @@
 // To disable automatic configuration at runtime (for compiled binaries),
 // Set "GOAUTOTUNE" environment variable to "false" or "0".
 //
+// # Kubernetes In-place Resource Resize
+//
+// This can be done using [time.Ticker] and a background goroutine.
+// See examples and [kubernetes docs] for more info.
+//
 // [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
 // [Vertical Pod autoscaling]: https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
 // [memory.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
@@ -88,6 +93,7 @@
 // [cpu.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#core-interface-files
 // [MemoryMax]: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#MemoryMax=bytes
 // [MemoryHigh]: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#MemoryHigh=bytes
+// [kubernetes docs]: https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/
 // [WithMaxReservePercent]: https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit.WithMaxReservePercent
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information

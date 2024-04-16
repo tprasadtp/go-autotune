@@ -300,13 +300,14 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	})
 
 	// Extended startup info.
+	processInfo := &windows.ProcessInformation{}
 	startupInfoEx := windows.StartupInfoEx{}
 	startupInfoEx.Cb = uint32(unsafe.Sizeof(startupInfoEx))
 	startupInfoEx.Flags = windows.STARTF_USESTDHANDLES
 	startupInfoEx.StdOutput = stdoutPipeWrite
 	startupInfoEx.StdErr = stderrPipeWrite
-	startupInfoEx.ProcThreadAttributeList = procThreadAttrs.List() //nolint:govet // unusedwrite: ProcThreadAttributeList will be read by syscall
-	processInfo := &windows.ProcessInformation{}
+	//nolint:govet // unusedwrite: ProcThreadAttributeList will be read by syscall
+	startupInfoEx.ProcThreadAttributeList = procThreadAttrs.List()
 
 	// Build args ptr
 	// argsPtr, err := windows.UTF16PtrFromString(`"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" dir env:`)
