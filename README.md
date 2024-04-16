@@ -23,7 +23,7 @@ Supports _both_ Windows and Linux.
 
 ## Usage
 
-Blank import `github.com/tprasadtp/go-autotune` in your main package.
+Simply blank import `github.com/tprasadtp/go-autotune` in your main package.
 
 ```go
 package main
@@ -58,11 +58,6 @@ This also affects rootless docker and podman.
 
 - Windows 10 or later
 - Windows Server 2019 or later.
-
-## Disabling Automatic Configuration
-
-To disable automatic configuration at runtime (for compiled binaries),
-Set `GOAUTOTUNE` environment variable to `0` or `false`.
 
 ## Incompatible Modules
 

@@ -12,8 +12,8 @@ data to stdout and exits.
 
 ## Docker
 
-Example docker images are only provided for limited number of platforms/architectures
-and are signed and provide SLSA level 3 provenance.
+Example docker images are only provided for limited number of platforms/architectures.
+They are signed and provide SLSA level 3 provenance.
 
 <div align="center">
 
@@ -34,8 +34,7 @@ docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 
 > [!IMPORTANT]
 >
-> Though this library works on Windows 10 or later and Windows 2016 or later
-> _example docker images_ are only provided for Server 2019, Server 2022 and
+> _Example docker images_ are only provided for Server 2019, Server 2022 and
 > Server 2025 because of [Windows container version compatibility].
 
 ![windows-stdout](./screenshots/windows-docker.svg)
