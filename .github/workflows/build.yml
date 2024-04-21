@@ -106,6 +106,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
+    outputs:
+      index-digest: ${{steps.index-digest.outputs.digest}}
+      digests-list-json: ${{ steps.digests-list-json.outputs.json }}
     steps:
       - name: Checkoutte
         uses: actions/checkout@v4
@@ -123,52 +127,22 @@ jobs:
       - name: Install Ko
         uses: ko-build/setup-ko@v0.6
 
+      - name: Install crane
+        run: go install github.com/google/go-containerregistry/cmd/crane@latest
+
       - name: Build Images
-        run: task --verbose example-images-build
+        run: >-
+          task
+          --verbose
+          --output=group
+          --output-group-begin "::group::{{.TASK_GROUP_NAME}}"
+          --output-group-end "::endgroup::"
+          example-images-build
         env:
           EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: images
-          path: example/*.tar.gz
-          retention-days: 30
-
-  example-images-push:
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    needs:
-      - test
-      - example-images-build
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      image-digest: ${{ steps.image-digest.outputs.digest }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: stable
-
-      - name: Install Task
-        run: go install github.com/go-task/task/v3/cmd/task@latest
-
-      - name: Install Crane
-        run: go install github.com/google/go-containerregistry/cmd/crane@latest
-
-      - name: Download Images
-        uses: actions/download-artifact@v4
-        with:
-          name: images
-          path: example
-
       - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -176,18 +150,29 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Images
+        if: github.event_name != 'pull_request'
         run: task --verbose example-images-push
         env:
           TAG_LATEST: ${{ github.ref == 'refs/heads/master' && 'true' || 'false' }}
           EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
 
-      - name: Get Image Digest
-        id: image-digest
+      - name: Get Index Digest
+        if: github.event_name != 'pull_request'
+        shell: bash
+        id: index-digest
         run: |
-          echo "digest=$(crane digest ${EXAMPLE_IMAGE}:${GIT_COMMIT})" >> "$GITHUB_OUTPUT"
-        env:
-          EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
-          GIT_COMMIT: ${{ github.sha }}
+          set -eo pipefail
+          echo "digest=$(crane digest ${{vars.EXAMPLE_IMAGE}}:${{github.sha}})" >> "$GITHUB_OUTPUT"
+
+      - name: Get Digests of Index and Manifests
+        if: github.event_name != 'pull_request'
+        shell: bash
+        id: digests-list-json
+        run: |
+          set -eo pipefail
+          crane digest ${{vars.EXAMPLE_IMAGE}}@${{steps.index-digest.outputs.digest}} > digests.txt
+          crane manifest ${{vars.EXAMPLE_IMAGE}}@${{steps.index-digest.outputs.digest}} |jq -r '.manifests| .[] | .digest' >> digests.txt
+          echo "json=$(jq -Mcn --arg v "$(cat digests.txt)" '{digest:$v|split("\n")}')" >> "$GITHUB_OUTPUT"
 
   example-images-sign:
     permissions:
@@ -198,7 +183,8 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs:
-      - example-images-push
+      - test
+      - example-images-build
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -216,21 +202,25 @@ jobs:
           --yes
           --recursive
           --oidc-provider=github-actions
-          ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
+          ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-build.outputs.index-digest }}
 
   example-images-provenance:
     if: github.event_name != 'pull_request'
     needs:
-      - example-images-push
+      - test
+      - example-images-build
     permissions:
       contents: read
       actions: read
       id-token: write
       packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.example-images-build.outputs.digests-list-json) }}
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.10.0
     with:
       image: ${{ vars.EXAMPLE_IMAGE }}
-      digest: ${{ needs.example-images-push.outputs.image-digest }}
+      digest: ${{ matrix.digest }}
       registry-username: ${{ github.actor }}
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
@@ -238,12 +228,16 @@ jobs:
   example-images-verification:
     if: github.event_name != 'pull_request'
     needs:
-      - example-images-push
+      - example-images-build
       - example-images-sign
       - example-images-provenance
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.example-images-build.outputs.digests-list-json) }}
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -255,11 +249,11 @@ jobs:
         run: >-
           slsa-verifier
           --source-uri github.com/${{ github.repository }}
-          verify-image ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
+          verify-image ${{ vars.EXAMPLE_IMAGE }}@${{matrix.digest}}
 
       - name: Verify Cosign Signature
         run: >-
-          cosign verify ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-push.outputs.image-digest }}
+          cosign verify ${{ vars.EXAMPLE_IMAGE }}@${{matrix.digest}}
           --certificate-identity-regexp "^https://github.com/${{ github.repository }}"
           --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
           --certificate-github-workflow-repository "${{ github.repository }}"

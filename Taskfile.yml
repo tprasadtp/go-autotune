@@ -271,20 +271,25 @@ tasks:
   internal:build-example-image-tarball:
     internal: true
     dir: example
+    prefix: "{{.TASK_GROUP_NAME}}"
     requires:
       vars:
-        - "KO_CONFIG_PATH"
+        - "TASK_GROUP_NAME"
+        - "KO_BASE_IMAGE"
+        - "KO_PLATFORM"
         - "KO_TARBALL_OUTPUT"
-        - "KO_CACHE_DIR"
-        - "GIT_COMMIT"
-        - "GIT_COMMIT_TS"
     env:
+      KO_DEFAULTBASEIMAGE: "{{.KO_BASE_IMAGE}}"
       KO_DOCKER_REPO: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
-      KO_CONFIG_PATH: "{{ .KO_CONFIG_PATH }}"
-      KOCACHE: "{{.KO_CACHE_DIR}}"
+      KO_CONFIG_PATH: ".ko.yml"
+      KOCACHE: ".cache"
     vars:
       GIT_COMMIT:
         sh: git -c log.showSignature=false show --format=%H --quiet HEAD
+      GIT_COMMIT_TS:
+        sh: git -c log.showSignature=false show --format=%cI --quiet HEAD
+      KO_BASE_IMAGE_DIGEST:
+        sh: crane digest {{.KO_BASE_IMAGE}} --platform {{.KO_PLATFORM}}
       IMAGE_LABEL_FLAGS: >-
         {{- printf "%s %s" " --image-label" `org.opencontainers.image.title=go-autotune` }}
         {{- printf "%s %s" " --image-label" `"org.opencontainers.image.description=Example image for go-autotune"` }}
@@ -298,44 +303,89 @@ tasks:
         {{- if .GIT_COMMIT_TS }}
           {{- printf "%s %s=%s" " --image-label" "org.opencontainers.image.created" .GIT_COMMIT_TS }}
         {{- end }}
+        {{- if and .KO_BASE_IMAGE .KO_BASE_IMAGE_DIGEST }}
+          {{- printf "%s %s=%s" " --image-label" "org.opencontainers.image.base.name" .KO_BASE_IMAGE }}
+          {{- printf "%s %s=%s" " --image-label" "org.opencontainers.image.base.digest" .KO_BASE_IMAGE_DIGEST }}
+        {{- end }}
     cmds:
-      - cmd: ko build --push=false --bare --sbom=none --tarball {{.KO_TARBALL_OUTPUT}} {{.IMAGE_LABEL_FLAGS}}
+      - cmd: >-
+          ko build
+          --platform={{.KO_PLATFORM}}
+          --push=false
+          --bare
+          --sbom=none
+          --tarball {{.KO_TARBALL_OUTPUT}}
+          {{.IMAGE_LABEL_FLAGS}}
+  internal:build-example-image-tarball:linux-amd64:
+    internal: true
+    cmds:
+      - task: internal:build-example-image-tarball
+        vars:
+          TASK_GROUP_NAME: "Linux-AMD64"
+          KO_PLATFORM: "linux/amd64"
+          KO_BASE_IMAGE: "cgr.dev/chainguard/static:latest"
+          KO_TARBALL_OUTPUT: "linux-amd64.tar.gz"
+  internal:build-example-image-tarball:linux-arm64:
+    internal: true
+    cmds:
+      - task: internal:build-example-image-tarball
+        vars:
+          TASK_GROUP_NAME: "Linux-ARM64"
+          KO_PLATFORM: "linux/arm64"
+          KO_BASE_IMAGE: "cgr.dev/chainguard/static:latest"
+          KO_TARBALL_OUTPUT: "linux-arm64.tar.gz"
+  internal:build-example-image-tarball:linux-armv7:
+    internal: true
+    cmds:
+      - task: internal:build-example-image-tarball
+        vars:
+          TASK_GROUP_NAME: "Linux-ARMv7"
+          KO_PLATFORM: "linux/arm/v7"
+          KO_BASE_IMAGE: "cgr.dev/chainguard/static:latest"
+          KO_TARBALL_OUTPUT: "linux-armv7.tar.gz"
+  internal:build-example-image-tarball:windows-amd64-2019:
+    internal: true
+    cmds:
+      - task: internal:build-example-image-tarball
+        vars:
+          TASK_GROUP_NAME: "Windows-Server-2019"
+          KO_PLATFORM: "windows/amd64"
+          KO_BASE_IMAGE: "mcr.microsoft.com/windows/nanoserver:ltsc2019"
+          KO_TARBALL_OUTPUT: "windows-2019-amd64.tar.gz"
+  internal:build-example-image-tarball:windows-amd64-2022:
+    internal: true
+    cmds:
+      - task: internal:build-example-image-tarball
+        vars:
+          TASK_GROUP_NAME: "Windows-Server-2022"
+          KO_PLATFORM: "windows/amd64"
+          KO_BASE_IMAGE: "mcr.microsoft.com/windows/nanoserver:ltsc2022"
+          KO_TARBALL_OUTPUT: "windows-2022-amd64.tar.gz"
+  internal:build-example-image-tarball:windows-amd64-2025:
+    internal: true
+    cmds:
+      - task: internal:build-example-image-tarball
+        vars:
+          TASK_GROUP_NAME: "Windows-Server-2025"
+          KO_PLATFORM: "windows/amd64"
+          KO_BASE_IMAGE: "mcr.microsoft.com/windows/nanoserver/insider:10.0.26080.1"
+          KO_TARBALL_OUTPUT: "windows-2025-amd64.tar.gz"
   example-images-build:
     desc: "Build example docker images"
     aliases:
       - "build-example-images"
-    vars:
-      GIT_COMMIT:
-        sh: git -c log.showSignature=false show --format=%H --quiet HEAD
-      GIT_COMMIT_SHORT:
-        sh: git -c log.showSignature=false show --format=%h --quiet HEAD
-      GIT_COMMIT_TS:
-        sh: git -c log.showSignature=false show --format=%cI --quiet HEAD
-    cmds:
-      - for:
-          - "linux-amd64"
-          - "linux-arm64"
-          - "linux-armv7"
-          - "windows-2019-amd64"
-          - "windows-2022-amd64"
-          - "windows-2025-amd64"
-        task: internal:build-example-image-tarball
-        vars:
-          KO_CONFIG_PATH: ".ko.{{.ITEM}}.yml"
-          KO_TARBALL_OUTPUT: "{{.ITEM}}.tar.gz"
-          KO_CACHE_DIR: ".cache"
-          GIT_COMMIT: "{{.GITCOMMIT}}"
-          GIT_COMMIT_SHORT: "{{.GIT_COMMIT_SHORT}}"
-          GIT_COMMIT_TS: "{{.GIT_COMMIT_TS}}"
+    deps:
+      - internal:build-example-image-tarball:linux-amd64
+      - internal:build-example-image-tarball:linux-arm64
+      - internal:build-example-image-tarball:linux-armv7
+      - internal:build-example-image-tarball:windows-amd64-2019
+      - internal:build-example-image-tarball:windows-amd64-2022
+      - internal:build-example-image-tarball:windows-amd64-2025
   example-images-push:
     desc: "Push example images. Must run example-images-build first."
     dir: example
     aliases:
       - "push-example-images"
-    # All images needs to be specified manually, as task does not support iterating
-    # over maps. Additionally, those digests are required for building image index.
-    # i.e manifest lists. Also, order in which variables are defined is important.
-    # as IMAGE is re-used by other variables.
     vars:
       IMAGE: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
       GIT_COMMIT:
