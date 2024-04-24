@@ -24,46 +24,49 @@
 //
 // # GOMEMLIMIT
 //
-// Memory limits can be soft memory limit(high), or hard memory limits(max).
-// This package prefers using soft memory limit(high) whenever possible.
+// Memory limits can be soft memory limit, or hard memory limit.
 //
-// For Linux, cgroup memory limit [memory.max] is a hard memory limit and
-// [memory.high] is a soft memory limit.
+// For Linux, cgroup v2 interface files are used to get memory limits.
+// cgroup memory limit [memory.max] is hard memory limit and [memory.high] is
+// soft memory limit. If using soft memory limits, an external process SHOULD monitor
+// pressure stall information of the workload/cgroup AND alleviate the reclaim pressure.
 //
 // For Windows, [QueryInformationJobObject] API is used to get memory limits.
-// Windows lacks the support for soft memory limits. [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]
-// defines per process(ProcessMemoryLimit) and per job memory limits(JobMemoryLimit).
-// ProcessMemoryLimit is always preferred over JobMemoryLimit. Both are considered hard limits.
+// [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)
+// and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred
+// over JobMemoryLimit. Both are considered hard limits.
 //
-//   - If GOMEMLIMIT environment variable is specified, it is always used, and
-//     limits are ignored. If GOMEMLIMIT environment variable is invalid, runtime
-//     may panic during initialization.
-//   - A percentage of maximum available memory is set as reserved.
-//     This helps to avoid OOMs when only max memory is specified.
-//     By default, 10% is set as reserved for max < 5Gi and 5% for max >= 5Gi.
-//   - If both max and high are positive and max - max*(reserved/100) is less than
-//     high, GOMEMLIMIT is set to max - max*(reserved/100).
-//   - If both max and high are positive and max - max*(reserved/100)
-//     is greater than high, GOMEMLIMIT is set to high.
-//   - If only max is positive, GOMEMLIMIT is set to max - max*(reserved/100).
-//   - If only high is positive, GOMEMLIMIT is set to high.
+//   - If GOMEMLIMIT environment variable is specified, it is ALWAYS used, and limits are
+//     ignored. If GOMEMLIMIT environment variable is invalid, runtime MAY panic.
+//   - A percentage of hard memory limit is set as reserved. This helps to avoid OOMs.
+//     By default, 10% is set as reserved, if limit is less than 5Gi and 5% otherwise.
+//   - If both hard and soft memory limits are specified, and (hard memory limit - reserved)
+//     is less than soft memory limit, GOMEMLIMIT is set to (hard memory limit - reserved).
+//   - If both hard and soft memory limits are specified, and (hard memory limit - reserved)
+//     is greater than soft memory limit, GOMEMLIMIT is set to soft memory limit.
+//   - If only hard memory limit is specified, GOMEMLIMIT is set to (hard memory limit - reserved).
+//   - If only soft memory limit is specified, GOMEMLIMIT is set to soft memory limit.
 //
-// For example,
-//   - For a workload with [MemoryMax]=250M and [MemoryHigh]=250M
+// # Examples
+//
+// For a workload, running as a systemd unit, [MemoryMax] property is used to define, hard memory
+// limit and [MemoryHigh] property is used to define soft memory limit. In such scenarios,
+//
+//   - Workload with [MemoryMax]=250M and [MemoryHigh]=250M
 //     GOMEMLIMIT is set to 235929600 bytes. (250M - 250*(10/100)) = 225MiB = 235929600.
-//     [MemoryHigh] is ignored as [MemoryMax] - [WithMaxReservePercent] is less than
-//     [MemoryHigh].
-//   - For a workload with [MemoryMax]=10G, GOMEMLIMIT is set to 10200547328 bytes.
+//     [MemoryHigh] is ignored as it is less than [MemoryMax] - [MemoryMax]*[WithMaxReservePercent].
+//   - Workload with [MemoryMax]=10G, GOMEMLIMIT is set to 10200547328 bytes.
 //     (10 - 10*(5/100)) = 9.5GiB = 10200547328.
-//   - For a workload with [MemoryHigh]=250M but no [MemoryMax] specified,
+//   - Workload with [MemoryHigh]=250M but no [MemoryMax] specified,
 //     GOMEMLIMIT is set to 250MiB = 262144000 bytes.
-//   - For a workload with [MemoryMax]=250M but no [MemoryHigh] specified,
+//   - Workload with [MemoryMax]=250M but no [MemoryHigh] specified,
 //     GOMEMLIMIT is set to 235929600 bytes. (250 - 250*(10/100)) = 225MiB = 235929600.
 //
 // # Use in library packages
 //
-// Libraries should avoid importing autotune package. It should only be imported
-// by the main package. For using custom init function or configuring manually, use
+// Libraries SHOULD avoid importing autotune package. It should only be imported
+// by the main package. For using a custom init function or configuring manually,
+// use
 //
 //   - [github.com/tprasadtp/go-autotune/maxprocs] for configuring GOMAXPROCS.
 //   - [github.com/tprasadtp/go-autotune/memlimit] for configuring GOMEMLIMIT.

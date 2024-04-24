@@ -17,52 +17,17 @@ import (
 	"github.com/tprasadtp/go-autotune/memlimit"
 )
 
-// AutotuneInBackground checks resource limits and sets GOMAXPROCS and GOMEMLIMIT
-// at specified intervals. This may be useful for in place resource resize
-// See https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/
-// for kubernetes docs.
+// This example checks resource limits and sets GOMAXPROCS and GOMEMLIMIT
+// at specified intervals. This may be useful for cases where resource limits
+// are expected to change.
 //
-// If GOAUTOTUNE env variable set to false value, disable it.
-func AutotuneInBackground(ctx context.Context, wg *sync.WaitGroup, logger *slog.Logger, interval time.Duration) {
-	switch strings.ToLower(os.Getenv("GOAUTOTUNE")) {
-	case "0", "off", "disable", "disabled", "no", "false":
-		logger.LogAttrs(ctx, slog.LevelInfo, "Automatic resource limit configuration is disabled")
-		return
-	}
-
-	// Initial configuration.
-	maxprocs.Configure(
-		maxprocs.WithLogger(logger),
-	)
-	memlimit.Configure(
-		memlimit.WithLogger(logger),
-	)
-
-	if interval >= time.Second {
-		ticker := time.NewTicker(interval)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for {
-				select {
-				case <-ctx.Done():
-					logger.Info("Stopping background autotune task")
-					ticker.Stop()
-					return
-				case <-ticker.C:
-					maxprocs.Configure(
-						maxprocs.WithLogger(logger),
-					)
-					memlimit.Configure(
-						memlimit.WithLogger(logger),
-					)
-				}
-			}
-		}()
-	}
-}
-
+// See https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/
+// for kubernetes in place resource resize documentation.
+//
+// If GOAUTOTUNE env variable set to false value, then GOMAXPROCS and GOMEMLIMIT
+// are not modified.
 func Example_inPlaceResourceResize() {
+	// WaitGroup to wait on background goroutines.
 	var wg sync.WaitGroup
 
 	// Stop goroutines on signals.
@@ -71,8 +36,40 @@ func Example_inPlaceResourceResize() {
 
 	// Change this interval to what your application requires.
 	// Avoid re-configuring too many times.
-	interval := time.Second * 30
-	AutotuneInBackground(ctx, &wg, slog.Default(), interval)
+	interval := time.Second * 10
+
+	switch strings.ToLower(os.Getenv("GOAUTOTUNE")) {
+	case "0", "off", "disable", "disabled", "no", "false":
+		slog.Info("Automatic resource limit configuration is disabled")
+	default:
+		maxprocs.Configure(
+			maxprocs.WithLogger(slog.Default()),
+		)
+		memlimit.Configure(
+			memlimit.WithLogger(slog.Default()),
+		)
+
+		ticker := time.NewTicker(interval)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					ticker.Stop()
+					slog.Info("Stopping background tasks...")
+					return
+				case <-ticker.C:
+					maxprocs.Configure(
+						maxprocs.WithLogger(slog.Default()),
+					)
+					memlimit.Configure(
+						memlimit.WithLogger(slog.Default()),
+					)
+				}
+			}
+		}()
+	}
 
 	// Wait for all background tasks to complete.
 	slog.Info("Waiting for background tasks to complete...")

@@ -44,11 +44,13 @@ func Current() int {
 // CPU throttling, it is recommended that you use [CPU Management with static policy],
 // to ensure CPU recommendation is an integer.
 //
-// For Windows containers with hyper-v isolation, hypervisor emulates specified
+// For Windows containers with Hyper-V isolation, hypervisor emulates specified
 // CPU cores, thus the default value of GOMAXPROCS is optimal and need not be changed.
 //
 // [cpu.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#core-interface-files
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
+// [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
+// [Vertical Pod autoscaling]: https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
 func Configure(opts ...Option) {
 	cfg := &config{}
 	ctx := context.Background()

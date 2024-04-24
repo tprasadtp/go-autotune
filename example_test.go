@@ -14,6 +14,9 @@ import (
 // To render a whole-file example, a package-level declaration is required.
 var _ = ""
 
+// This simply prints current GOMAXPROCS and GOMEMLIMIT values.
+// If [github.com/tprasadtp/go-autotune] package is imported as specified,
+// It should show appropriately configured values for GOMAXPROCS and GOMEMLIMIT.
 func Example_simple() {
 	fmt.Printf("GOOS       : %s\n", runtime.GOOS)
 	fmt.Printf("GOMAXPROCS : %d\n", runtime.GOMAXPROCS(-1))
