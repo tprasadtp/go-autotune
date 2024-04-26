@@ -19,15 +19,11 @@ jobs:
       matrix:
         go:
           - stable
-          - oldstable
         os:
           - macos-latest
           - ubuntu-22.04
           - windows-2022
           - windows-2019
-        exclude:
-          - os: macos-latest
-            go: oldstable
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
