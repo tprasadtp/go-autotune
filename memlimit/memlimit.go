@@ -31,28 +31,34 @@ func Current() int64 {
 
 // Configure configures GOMEMLIMIT.
 //
-// Memory limits can be soft memory limit, or hard memory limit.
+// If GOMEMLIMIT environment variable is specified, it is ALWAYS used, and limits are
+// ignored. If GOMEMLIMIT environment variable is invalid, runtime MAY panic. Otherwise
+// this package will attempt to detect defined memory limits using platform specific APIs.
+//
+// Memory limits can be soft limit, or hard limit. Hard memory limit cannot be breached
+// by the process and typically leads to OOM killer being invoked for the process group/process
+// when it is exceeded. For this reason, to let garbage collector free up memory early before
+// OOM killer is involved, a small percentage of hard memory limit is set aside as reserved.
+// This memory is fully accessible to the process and the runtime, but acts as a hint to the
+// garbage collector. By default, 10% is set as reserved, hard memory limit is less than 5Gi
+// and 5% otherwise.
 //
 // For Linux, cgroup v2 interface files are used to get memory limits.
 // cgroup memory limit [memory.max] is hard memory limit and [memory.high] is
 // soft memory limit. If using soft memory limits, an external process SHOULD monitor
 // pressure stall information of the workload/cgroup AND alleviate the reclaim pressure.
 //
+//   - If both [memory.max] and [memory.high] are specified, and ([memory.max] - reserved)
+//     is less than [memory.high], GOMEMLIMIT is set to ([memory.max] - reserved).
+//   - If both [memory.max] and [memory.high] limits are specified, and ([memory.max] - reserved)
+//     is greater than [memory.high], GOMEMLIMIT is set to [memory.high].
+//   - If only [memory.max] is specified, GOMEMLIMIT is set to ([memory.max] - reserved).
+//   - If only [memory.high] limit is specified, GOMEMLIMIT is set to [memory.high].
+//
 // For Windows, [QueryInformationJobObject] API is used to get memory limits.
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)
 // and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred
 // over JobMemoryLimit. Both are considered hard limits.
-//
-//   - If GOMEMLIMIT environment variable is specified, it is ALWAYS used, and limits are
-//     ignored. If GOMEMLIMIT environment variable is invalid, runtime MAY panic.
-//   - A percentage of hard memory limit is set as reserved. This helps to avoid OOMs.
-//     By default, 10% is set as reserved, if limit is less than 5Gi and 5% otherwise.
-//   - If both hard and soft memory limits are specified, and (hard memory limit - reserved)
-//     is less than soft memory limit, GOMEMLIMIT is set to (hard memory limit - reserved).
-//   - If both hard and soft memory limits are specified, and (hard memory limit - reserved)
-//     is greater than soft memory limit, GOMEMLIMIT is set to soft memory limit.
-//   - If only hard memory limit is specified, GOMEMLIMIT is set to (hard memory limit - reserved).
-//   - If only soft memory limit is specified, GOMEMLIMIT is set to soft memory limit.
 //
 // [memory.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
 // [memory.high]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files

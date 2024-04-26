@@ -67,7 +67,7 @@ func Configure(opts ...Option) {
 		cfg.Logger = slog.New(discard.NewHandler())
 	}
 
-	// If CPUQuotaFunc is not specified, use default based on CGroupV2.
+	// If CPUQuotaFunc is not specified, use default.
 	if cfg.CPUQuotaFunc == nil {
 		cfg.CPUQuotaFunc = func() (float64, error) {
 			v, err := platform.GetCPUQuota()
@@ -78,7 +78,7 @@ func Configure(opts ...Option) {
 		}
 	}
 
-	// If rounding function is not specified, use math.ceil
+	// If rounding function is not specified, use math.Ceil
 	if cfg.RoundFunc == nil {
 		cfg.RoundFunc = func(f float64) int {
 			if f < 0 {
@@ -112,9 +112,6 @@ func Configure(opts ...Option) {
 	// Get CPU quota.
 	quota, err := cfg.CPUQuotaFunc()
 	if err != nil {
-		// Log if error is not [errors.ErrUnsupported].
-		//
-		// This ensures non linux platforms do not log anything.
 		if !errors.Is(err, errors.ErrUnsupported) {
 			cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get cpu quota",
 				slog.Any("err", err))
@@ -128,8 +125,7 @@ func Configure(opts ...Option) {
 			slog.Float64("cpu.quota", quota),
 		)
 
-		// Round off fractional CPU using defined RoundFunc.
-		// Default is math.Ceil.
+		// Round off fractional CPU using defined RoundFunc. Default is math.Ceil.
 		procs := cfg.RoundFunc(quota)
 
 		// GOMAXPROCS ensure at-least 1

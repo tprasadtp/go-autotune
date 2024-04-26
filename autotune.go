@@ -24,43 +24,50 @@
 //
 // # GOMEMLIMIT
 //
-// Memory limits can be soft memory limit, or hard memory limit.
+// If GOMEMLIMIT environment variable is specified, it is ALWAYS used, and limits are
+// ignored. If GOMEMLIMIT environment variable is invalid, runtime MAY panic. Otherwise
+// this package will attempt to detect defined memory limits using platform specific APIs.
+//
+// Memory limit can be soft limit, or hard limit. Hard memory limit cannot be breached
+// by the process and typically leads to OOM killer being invoked for the process group/process
+// when it is exceeded. For this reason, to let garbage collector free up memory early before
+// OOM killer is involved, a small percentage of hard memory limit is set aside as reserved.
+// This memory is fully accessible to the process and the runtime, but acts as a hint to the
+// garbage collector. By default, 10% is set as reserved, hard memory limit is less than 5Gi
+// and 5% otherwise.
 //
 // For Linux, cgroup v2 interface files are used to get memory limits.
 // cgroup memory limit [memory.max] is hard memory limit and [memory.high] is
 // soft memory limit. If using soft memory limits, an external process SHOULD monitor
 // pressure stall information of the workload/cgroup AND alleviate the reclaim pressure.
 //
+//   - If both [memory.max] and [memory.high] are specified, and ([memory.max] - reserved)
+//     is less than [memory.high], GOMEMLIMIT is set to ([memory.max] - reserved).
+//   - If both [memory.max] and [memory.high] limits are specified, and ([memory.max] - reserved)
+//     is greater than [memory.high], GOMEMLIMIT is set to [memory.high].
+//   - If only [memory.max] is specified, GOMEMLIMIT is set to ([memory.max] - reserved).
+//   - If only [memory.high] limit is specified, GOMEMLIMIT is set to [memory.high].
+//
+// For a workload, running as a systemd unit with,
+//
+//   - [MemoryMax]=250M and [MemoryHigh]=250M GOMEMLIMIT is set to 235929600 bytes.
+//     (250M - 250*(10%)) = 225MiB = 235929600. [MemoryHigh] is ignored as it is less than
+//     [MemoryMax] - [MemoryMax]*[WithMaxReservePercent].
+//   - [MemoryMax]=10G, GOMEMLIMIT is set to (10 - 10*(5%)) = 9.5GiB = 10200547328.
+//   - [MemoryHigh]=250M but no [MemoryMax] specified, GOMEMLIMIT is set to 250MiB = 262144000 bytes.
+//   - [MemoryMax]=250M but no [MemoryHigh] specified, GOMEMLIMIT is set to (250 - 250*(10%)) = 225MiB = 235929600.
+//
 // For Windows, [QueryInformationJobObject] API is used to get memory limits.
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)
 // and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred
 // over JobMemoryLimit. Both are considered hard limits.
 //
-//   - If GOMEMLIMIT environment variable is specified, it is ALWAYS used, and limits are
-//     ignored. If GOMEMLIMIT environment variable is invalid, runtime MAY panic.
-//   - A percentage of hard memory limit is set as reserved. This helps to avoid OOMs.
-//     By default, 10% is set as reserved, if limit is less than 5Gi and 5% otherwise.
-//   - If both hard and soft memory limits are specified, and (hard memory limit - reserved)
-//     is less than soft memory limit, GOMEMLIMIT is set to (hard memory limit - reserved).
-//   - If both hard and soft memory limits are specified, and (hard memory limit - reserved)
-//     is greater than soft memory limit, GOMEMLIMIT is set to soft memory limit.
-//   - If only hard memory limit is specified, GOMEMLIMIT is set to (hard memory limit - reserved).
-//   - If only soft memory limit is specified, GOMEMLIMIT is set to soft memory limit.
+// For a windows container running with,
 //
-// # Examples
-//
-// For a workload, running as a systemd unit, [MemoryMax] property is used to define, hard memory
-// limit and [MemoryHigh] property is used to define soft memory limit. In such scenarios,
-//
-//   - Workload with [MemoryMax]=250M and [MemoryHigh]=250M
-//     GOMEMLIMIT is set to 235929600 bytes. (250M - 250*(10/100)) = 225MiB = 235929600.
-//     [MemoryHigh] is ignored as it is less than [MemoryMax] - [MemoryMax]*[WithMaxReservePercent].
-//   - Workload with [MemoryMax]=10G, GOMEMLIMIT is set to 10200547328 bytes.
-//     (10 - 10*(5/100)) = 9.5GiB = 10200547328.
-//   - Workload with [MemoryHigh]=250M but no [MemoryMax] specified,
-//     GOMEMLIMIT is set to 250MiB = 262144000 bytes.
-//   - Workload with [MemoryMax]=250M but no [MemoryHigh] specified,
-//     GOMEMLIMIT is set to 235929600 bytes. (250 - 250*(10/100)) = 225MiB = 235929600.
+//   - Memory limit 250M, GOMEMLIMIT is set to 235929600 bytes.
+//     (250M - 250*(10/100)) = 225MiB = 235929600.
+//   - Memory limit 10G, GOMEMLIMIT is set to 10200547328 bytes.
+//     (10 - 10*(5%)) = 9.5GiB = 10200547328.
 //
 // # Use in library packages
 //
@@ -84,11 +91,6 @@
 // To disable automatic configuration at runtime (for compiled binaries),
 // Set "GOAUTOTUNE" environment variable to "false" or "0".
 //
-// # Kubernetes In-place Resource Resize
-//
-// This can be done using [time.Ticker] and a background goroutine.
-// See examples and [kubernetes docs] for more info.
-//
 // [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
 // [Vertical Pod autoscaling]: https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
 // [memory.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
@@ -96,7 +98,6 @@
 // [cpu.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#core-interface-files
 // [MemoryMax]: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#MemoryMax=bytes
 // [MemoryHigh]: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#MemoryHigh=bytes
-// [kubernetes docs]: https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/
 // [WithMaxReservePercent]: https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit.WithMaxReservePercent
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information
