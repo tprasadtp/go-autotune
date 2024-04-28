@@ -213,7 +213,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.example-images-build.outputs.digests-list-json) }}
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.10.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
       image: ${{ vars.EXAMPLE_IMAGE }}
       digest: ${{ matrix.digest }}
