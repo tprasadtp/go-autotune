@@ -102,3 +102,10 @@
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information
 package autotune
+
+import "github.com/tprasadtp/go-autotune/internal/autotune"
+
+//nolint:gochecknoinits // ignore
+func init() {
+	autotune.Configure()
+}

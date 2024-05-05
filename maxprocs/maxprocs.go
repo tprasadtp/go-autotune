@@ -100,6 +100,10 @@ func Configure(opts ...Option) {
 					"Setting GOMAXPROCS from environment variable",
 					slog.String("GOMAXPROCS", env))
 				runtime.GOMAXPROCS(maxProcsEnv)
+			} else {
+				cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
+					"GOMAXPROCS is already set from environment variable",
+					slog.String("GOMAXPROCS", env))
 			}
 		} else {
 			cfg.Logger.LogAttrs(ctx, slog.LevelError,

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
+//go:build linux
+
 package autotune
 
 import (
@@ -12,8 +14,7 @@ import (
 	"github.com/tprasadtp/go-autotune/memlimit"
 )
 
-//nolint:gochecknoinits // ignore
-func init() {
+func configure() {
 	if env.IsFalse("GO_AUTOTUNE") || env.IsFalse("GOAUTOTUNE") {
 		return
 	}

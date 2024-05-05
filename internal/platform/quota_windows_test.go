@@ -6,15 +6,14 @@
 package platform_test
 
 import (
-	"runtime"
 	"testing"
 
-	"github.com/tprasadtp/go-autotune/internal/parse"
 	"github.com/tprasadtp/go-autotune/internal/platform"
-	"github.com/tprasadtp/go-autotune/internal/testutils"
+	"github.com/tprasadtp/go-autotune/internal/shared"
+	"github.com/tprasadtp/go-autotune/internal/trampoline"
 )
 
-func TestGetQuota_NoQuotaDirect(t *testing.T) {
+func TestGetQuotaDirect(t *testing.T) {
 	cpu, err := platform.GetCPUQuota()
 	if err != nil {
 		t.Errorf("expected no error, got=%s", err)
@@ -38,135 +37,84 @@ func TestGetQuota_NoQuotaDirect(t *testing.T) {
 	}
 }
 
-func TestGetQuota_NoQuota(t *testing.T) {
-	testutils.WindowsRun(t, 0, 0, 0, "", func(t *testing.T) {
-		cpu, err := platform.GetCPUQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if cpu != 0 {
-			t.Errorf("expected=0, got=%f", cpu)
-		}
-
-		max, high, err := platform.GetMemoryQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if max != 0 {
-			t.Errorf("expected max=0, got=%d", max)
-		}
-
-		if high != 0 {
-			t.Errorf("expected high=0, got=%d", high)
-		}
-	})
-}
-
-func TestGetQuota_JobMemoryLimit(t *testing.T) {
-	testutils.WindowsRun(t, 0, 3*parse.GiByte, 0, "", func(t *testing.T) {
-		cpu, err := platform.GetCPUQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if cpu != 0 {
-			t.Errorf("expected=0, got=%f", cpu)
-		}
-
-		max, high, err := platform.GetMemoryQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if max != 3*parse.GiByte {
-			t.Errorf("expected max=%d, got=%d", int64(3*parse.GiByte), max)
-		}
-
-		if high != 0 {
-			t.Errorf("expected high=0, got=%d", high)
-		}
-	})
-}
-
-func TestGetQuota_ProcessMemoryLimit(t *testing.T) {
-	testutils.WindowsRun(t, 0, 0, 2.5*parse.GiByte, "", func(t *testing.T) {
-		cpu, err := platform.GetCPUQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if cpu != 0 {
-			t.Errorf("expected=0, got=%f", cpu)
-		}
-
-		max, high, err := platform.GetMemoryQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if max != 2.5*parse.GiByte {
-			t.Errorf("expected max=%d, got=%d", int64(3*parse.GiByte), max)
-		}
-
-		if high != 0 {
-			t.Errorf("expected high=0, got=%d", high)
-		}
-	})
-}
-
-func TestGetQuota_WithBothMemory(t *testing.T) {
-	testutils.WindowsRun(t, 0, 2.5*parse.GiByte, 3*parse.GiByte, "", func(t *testing.T) {
-		cpu, err := platform.GetCPUQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if cpu != 0 {
-			t.Errorf("expected=0, got=%f", cpu)
-		}
-
-		max, high, err := platform.GetMemoryQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if max != 3*parse.GiByte {
-			t.Errorf("expected max=%d, got=%d", int64(3*parse.GiByte), max)
-		}
-
-		if high != 0 {
-			t.Errorf("expected high=0, got=%d", high)
-		}
-	})
-}
-
-func TestGetQuota_CPULessThanOne(t *testing.T) {
-	testutils.WindowsRun(t, 0.5, 0, 0, "", func(t *testing.T) {
-		cpu, err := platform.GetCPUQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if cpu != 0.5 {
-			t.Errorf("expected=1, got=%f", cpu)
-		}
-	})
-}
-
-func TestGetQuota_CPUMoreThanOne(t *testing.T) {
-	if runtime.NumCPU() == 1 {
-		t.Skipf("Skipping CPU>1 tests on single core machine")
+func TestGetQuotaTrampoline(t *testing.T) {
+	tt := []trampoline.Scenario{
+		{
+			Name:   "Windows/NoQuota",
+			Opts:   trampoline.Options{},
+			Verify: VerifyQuotaFunc(0, 0, 0),
+		},
+		{
+			Name: "Windows/CPUFraction",
+			Opts: trampoline.Options{
+				CPU: 0.5,
+			},
+			Verify: VerifyQuotaFunc(0.5, 0, 0),
+		},
+		{
+			Name: "Windows/CPU=1",
+			Opts: trampoline.Options{
+				CPU: 1,
+			},
+			Verify: VerifyQuotaFunc(1, 0, 0),
+		},
+		{
+			Name: "Windows/CPU=1.5",
+			Opts: trampoline.Options{
+				CPU: 1.5,
+			},
+			Verify: VerifyQuotaFunc(1.5, 0, 0),
+		},
+		{
+			Name: "Windows/CPU=2.5",
+			Opts: trampoline.Options{
+				CPU: 2.5,
+			},
+			Verify: VerifyQuotaFunc(2.5, 0, 0),
+		},
+		{
+			Name: "Windows/JobMemoryLimitOnly",
+			Opts: trampoline.Options{
+				M2: shared.MiByte * 250,
+			},
+			Verify: VerifyQuotaFunc(0, shared.MiByte*250, 0),
+		},
+		{
+			Name: "Windows/ProcessMemoryLimitOnly",
+			Opts: trampoline.Options{
+				M1: shared.MiByte * 300,
+			},
+			Verify: VerifyQuotaFunc(0, shared.MiByte*300, 0),
+		},
+		{
+			Name: "Windows/ProcessMemoryLimitSameAsJobMemoryLimit",
+			Opts: trampoline.Options{
+				M1: shared.MiByte * 250,
+				M2: shared.MiByte * 250,
+			},
+			Verify: VerifyQuotaFunc(0, shared.MiByte*250, 0),
+		},
+		{
+			Name: "Windows/ProcessMemoryLimitLessThanJobMemoryLimit",
+			Opts: trampoline.Options{
+				M1: shared.MiByte * 250,
+				M2: shared.MiByte * 300,
+			},
+			Verify: VerifyQuotaFunc(0, shared.MiByte*250, 0),
+		},
+		// This is certainly a misconfiguration and unlikely to occur, but still test it.
+		{
+			Name: "Windows/ProcessMemoryLimitGreaterThanJobMemoryLimit",
+			Opts: trampoline.Options{
+				M1: shared.MiByte * 300,
+				M2: shared.MiByte * 250,
+			},
+			Verify: VerifyQuotaFunc(0, shared.MiByte*250, 0),
+		},
 	}
-	testutils.WindowsRun(t, 1.5, 0, 0, "", func(t *testing.T) {
-		cpu, err := platform.GetCPUQuota()
-		if err != nil {
-			t.Errorf("expected no error, got=%s", err)
-		}
-
-		if cpu != 1.5 {
-			t.Errorf("expected=2, got=%f", cpu)
-		}
-	})
+	for _, tc := range tt {
+		t.Run(tc.Name, func(t *testing.T) {
+			trampoline.Trampoline(t, tc.Opts, tc.Verify, nil)
+		})
+	}
 }

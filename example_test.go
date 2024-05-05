@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	_ "github.com/tprasadtp/go-autotune" // Blank import adjusts GOMAXPROCS & GOMEMLIMIT
+	_ "github.com/tprasadtp/go-autotune" // Adjusts GOMAXPROCS & GOMEMLIMIT
 )
 
 // To render a whole-file example, a package-level declaration is required.

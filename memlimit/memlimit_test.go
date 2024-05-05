@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/tprasadtp/go-autotune/internal/parse"
-	"github.com/tprasadtp/go-autotune/internal/testutils"
+	"github.com/tprasadtp/go-autotune/internal/shared"
+	"github.com/tprasadtp/go-autotune/internal/trampoline"
 	"github.com/tprasadtp/go-autotune/memlimit"
 )
 
@@ -45,12 +45,12 @@ func TestConfigure_EnvVariable(t *testing.T) {
 		{
 			name:   "500MiB",
 			env:    "500MiB",
-			expect: 500 * parse.MiByte,
+			expect: 500 * shared.MiByte,
 		},
 		{
 			name:   "5GiB",
 			env:    "5GiB",
-			expect: 5 * parse.GiByte,
+			expect: 5 * shared.GiByte,
 		},
 		{
 			name:   "Invalid-500Mi",
@@ -77,7 +77,7 @@ func TestConfigure_EnvVariable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("GOMEMLIMIT", tc.env)
 			reset()
-			memlimit.Configure(memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))))
+			memlimit.Configure(memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))))
 			c := memlimit.Current()
 			if tc.expect != c {
 				t.Errorf("GOMEMLIMIT expected=%d, got=%d", tc.expect, c)
@@ -90,7 +90,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("Unsupported", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, 0, fmt.Errorf("test: %w", syscall.ENOTSUP)
 			}),
@@ -103,7 +103,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("WithMemoryQuotaFunc-Errors", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, 0, fmt.Errorf("test: unknown error")
 			}),
@@ -117,51 +117,51 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("FixedValue", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
-				return 0, 50 * parse.GiByte, nil
+				return 0, 50 * shared.GiByte, nil
 			}),
 		)
 		v := memlimit.Current()
-		if v != 50*parse.GiByte {
-			t.Errorf("expected=%d, got=%d", 500*parse.GiByte, v)
+		if v != 50*shared.GiByte {
+			t.Errorf("expected=%d, got=%d", 500*shared.GiByte, v)
 		}
 	})
 
 	t.Run("WithMaxReservePercent-50", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMaxReservePercent(50),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
-				return 10 * parse.GiByte, 0, nil
+				return 10 * shared.GiByte, 0, nil
 			}),
 		)
 		v := memlimit.Current()
-		if v != 5*parse.GiByte {
-			t.Errorf("expected=%d, got=%d", 5*parse.GiByte, v)
+		if v != 5*shared.GiByte {
+			t.Errorf("expected=%d, got=%d", 5*shared.GiByte, v)
 		}
 	})
 
 	t.Run("WithMaxReservePercent-0", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMaxReservePercent(0),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
-				return 5 * parse.GiByte, 0, nil
+				return 5 * shared.GiByte, 0, nil
 			}),
 		)
 		v := memlimit.Current()
-		if v != 5*parse.GiByte {
-			t.Errorf("expected=%d, got=%d", 5*parse.GiByte, v)
+		if v != 5*shared.GiByte {
+			t.Errorf("expected=%d, got=%d", 5*shared.GiByte, v)
 		}
 	})
 
 	t.Run("AlreadySet", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, math.MaxInt64, nil
 			}),
@@ -175,7 +175,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 	t.Run("Undefined", func(t *testing.T) {
 		reset()
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return 0, 0, nil
 			}),
@@ -188,17 +188,17 @@ func TestConfigure_WithOptions(t *testing.T) {
 
 	t.Run("MaxLessThanHigh", func(t *testing.T) {
 		reset()
-		var max int64 = 2.5 * parse.GiByte
-		var high int64 = 3 * parse.GiByte
+		var max int64 = 2.5 * shared.GiByte
+		var high int64 = 3 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, high, nil
 			}),
 		)
 		v := memlimit.Current()
 		// because we compute reserve with ceil, expect should be floor.
-		expect := int64(math.Floor(2.25 * parse.GiByte))
+		expect := int64(math.Floor(2.25 * shared.GiByte))
 		if v != expect {
 			t.Errorf("expected=%d, got=%d", expect, v)
 		}
@@ -206,17 +206,17 @@ func TestConfigure_WithOptions(t *testing.T) {
 
 	t.Run("MaxEqualsHigh", func(t *testing.T) {
 		reset()
-		var max int64 = 2.5 * parse.GiByte
-		var high int64 = 3 * parse.GiByte
+		var max int64 = 2.5 * shared.GiByte
+		var high int64 = 3 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, high, nil
 			}),
 		)
 		v := memlimit.Current()
 		// because we compute reserve with ceil, expect should be floor.
-		expect := int64(math.Floor(2.25 * parse.GiByte))
+		expect := int64(math.Floor(2.25 * shared.GiByte))
 		if v != expect {
 			t.Errorf("expected=%d, got=%d", expect, v)
 		}
@@ -224,17 +224,17 @@ func TestConfigure_WithOptions(t *testing.T) {
 
 	t.Run("MaxGreaterThanHigh", func(t *testing.T) {
 		reset()
-		var max int64 = 3 * parse.GiByte
-		var high int64 = 2.5 * parse.GiByte
+		var max int64 = 3 * shared.GiByte
+		var high int64 = 2.5 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, high, nil
 			}),
 		)
 		v := memlimit.Current()
 		// because we compute reserve with ceil, expect should be floor.
-		expect := int64(math.Floor(2.5 * parse.GiByte))
+		expect := int64(math.Floor(2.5 * shared.GiByte))
 		if v != expect {
 			t.Errorf("expected=%d, got=%d", expect, v)
 		}
@@ -242,16 +242,16 @@ func TestConfigure_WithOptions(t *testing.T) {
 
 	t.Run("MaxGreaterThan5GiB", func(t *testing.T) {
 		reset()
-		var max int64 = 10 * parse.GiByte
+		var max int64 = 10 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, 0, nil
 			}),
 		)
 		v := memlimit.Current()
 		// because we compute reserve with ceil, expect should be floor.
-		expect := int64(math.Floor(9.5 * parse.GiByte))
+		expect := int64(math.Floor(9.5 * shared.GiByte))
 		if v != expect {
 			t.Errorf("expected=%d, got=%d", expect, v)
 		}
@@ -259,9 +259,9 @@ func TestConfigure_WithOptions(t *testing.T) {
 
 	t.Run("MaxInvalidReserverPercent", func(t *testing.T) {
 		reset()
-		var max int64 = 3 * parse.GiByte
+		var max int64 = 3 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, 0, nil
 			}),
@@ -269,7 +269,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 		)
 		v := memlimit.Current()
 		// because we compute reserve with ceil, expect should be floor.
-		expect := int64(math.Floor(2.7 * parse.GiByte))
+		expect := int64(math.Floor(2.7 * shared.GiByte))
 		if v != expect {
 			t.Errorf("expected=%d, got=%d", expect, v)
 		}
@@ -277,9 +277,9 @@ func TestConfigure_WithOptions(t *testing.T) {
 
 	t.Run("MaxInvalidReserverPercent5GiB", func(t *testing.T) {
 		reset()
-		var max int64 = 5 * parse.GiByte
+		var max int64 = 5 * shared.GiByte
 		memlimit.Configure(
-			memlimit.WithLogger(slog.New(testutils.NewTestingHandler(t))),
+			memlimit.WithLogger(slog.New(trampoline.NewTestingHandler(t))),
 			memlimit.WithMemoryQuotaFunc(func() (int64, int64, error) {
 				return max, 0, nil
 			}),
@@ -287,7 +287,7 @@ func TestConfigure_WithOptions(t *testing.T) {
 		)
 		v := memlimit.Current()
 		// because we compute reserve with ceil, expect should be floor.
-		expect := int64(math.Floor(4.75 * parse.GiByte))
+		expect := int64(math.Floor(4.75 * shared.GiByte))
 		if v != expect {
 			t.Errorf("expected=%d, got=%d", expect, v)
 		}

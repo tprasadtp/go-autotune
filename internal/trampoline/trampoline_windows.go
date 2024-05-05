@@ -1,17 +1,17 @@
-// SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
+// SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
 //go:build windows
 
-package testutils
+package trampoline
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math"
+	"math/rand/v2"
 	"os"
 	"runtime"
 	"strconv"
@@ -23,8 +23,7 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
-	"github.com/tprasadtp/go-autotune/internal/env"
-	"github.com/tprasadtp/go-autotune/internal/types"
+	"github.com/tprasadtp/go-autotune/internal/shared"
 	"golang.org/x/sys/windows"
 )
 
@@ -78,28 +77,28 @@ func readPipe(h windows.Handle) ([]byte, error) {
 	return nil, nil
 }
 
-func pipeLogger(ctx context.Context, wg *sync.WaitGroup, read windows.Handle, logger *OutputLogger) {
+func pipeStream(ctx context.Context, tb testing.TB, wg *sync.WaitGroup, h windows.Handle, w io.Writer) {
 	defer wg.Done()
 	for {
 		select {
 		case <-ctx.Done():
 			// Read any pending data in pipe.
-			buf, err := readPipe(read)
+			buf, err := readPipe(h)
 			if err != nil {
-				logger.Errorf("Failed to read pending data from pipe: %s", err)
+				tb.Errorf("Failed to read pending data from pipe: %s", err)
 			}
 			if len(buf) > 0 {
-				logger.LogOutput(buf)
+				_, _ = w.Write(buf)
 			}
 			return
 		default:
-			buf, err := readPipe(read)
+			buf, err := readPipe(h)
 			if err != nil {
-				logger.Errorf("Failed to read from pipe: %s", err)
+				tb.Errorf("Failed to read from pipe: %s", err)
 				return
 			}
 			if len(buf) > 0 {
-				logger.LogOutput(buf)
+				_, _ = w.Write(buf)
 			}
 			// Avoid CPU bounds, as anonymous pipes do not support overlapped i/o.
 			//nolint:forbidigo //ignore
@@ -108,91 +107,97 @@ func pipeLogger(ctx context.Context, wg *sync.WaitGroup, read windows.Handle, lo
 	}
 }
 
-// WindowsRun runs test function fn via Windows jobobject API.
+// trampoline runs test function fn via Windows jobobject API.
 //
 //nolint:funlen // ignore
-func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv string, fn func(t *testing.T)) {
-	if fn == nil {
-		t.Fatalf("fn function is nil")
+func trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configure func()) {
+	if verify == nil {
+		tb.Fatalf("verify function is nil")
 	}
 
-	// If trampoline is true, run the given test function.
-	if env.IsTrue("GO_TEST_EXEC_TRAMPOLINE") {
-		fn(t)
+	// If trampoline is defined, run the given test function.
+	if _, ok := os.LookupEnv("GO_TEST_EXEC_TRAMPOLINE"); ok {
+		// If fn hook is specified, then, run it.
+		// This is typically the function which sets GOMAXPROCS and GOMEMLIMIT.
+		// This can be nil, if its already set via import side effects.
+		if configure != nil {
+			configure()
+		}
+
+		// verify is a test assertion function.
+		verify(tb)
 		return
+	}
+
+	// Options default overrides.
+	if opts.Timeout <= 0 {
+		opts.Timeout = time.Second * 30
 	}
 
 	// Env variables
 	envv := os.Environ()
+	envv = append(envv, opts.Env...)
+
 	for _, item := range envv {
 		if strings.Contains(strings.ToUpper(item), "GO_TEST_EXEC_TRAMPOLINE") {
-			t.Fatalf("env GO_TEST_EXEC_TRAMPOLINE is already defined")
+			tb.Fatalf("env GO_TEST_EXEC_TRAMPOLINE is already defined")
 		}
 	}
 	envv = append(envv, "GO_TEST_EXEC_TRAMPOLINE=true")
-	if autoTuneEnv != "" {
-		envv = append(envv, fmt.Sprintf("GOAUTOTUNE=%s", autoTuneEnv))
+
+	// Skip if available CPUs < configured CPUs.
+	if opts.CPU > float64(runtime.NumCPU()) {
+		tb.Skipf("CPU=%f > runtime.NumCPU(%d)", opts.CPU, runtime.NumCPU())
 	}
 
 	// Set timeouts.
 	//
 	// Ideally we would set per set timeouts, but they are not available yet.
 	// See https://github.com/golang/go/issues/48157 for more info.
-	var ctx context.Context
-	var cancel context.CancelFunc
-	var timeout time.Duration
-	if ts, ok := t.Deadline(); ok {
-		// Timeout is derived from test's own timeout.
-		timeout = time.Since(ts).Abs()
-		ctx, cancel = context.WithDeadline(context.Background(), ts)
-	} else {
-		timeout = time.Second * 30
-		ctx, cancel = context.WithTimeout(context.Background(), time.Second*30)
-	}
+	// Set timeouts.
+	//
+	// Ideally we would set per set timeouts, but they are not available yet.
+	// See https://github.com/golang/go/issues/48157 for more info.
+	ctx, cancel := context.WithTimeout(context.Background(), opts.Timeout)
 	defer cancel()
 
 	// Trampoline exe
 	exe, err := os.Executable()
 	if err != nil {
-		t.Fatalf("Failed to find test exe: %s", err)
+		tb.Fatalf("Failed to find test exe: %s", err)
 	}
 
 	// Trampoline args.
-	trampolineArgs := []string{
+	args := []string{
 		strconv.Quote(exe),
-		fmt.Sprintf(`-test.run=^%s$`, t.Name()),
-		fmt.Sprintf("-test.timeout=%s", timeout),
+		fmt.Sprintf(`-test.run=^%s$`, tb.Name()),
+		fmt.Sprintf("-test.timeout=%s", opts.Timeout),
 		"--test.v",
 	}
 
 	// The return value will be empty if test coverage is not enabled.
-	if TestingCoverDir(t) != "" {
-		trampolineArgs = append(trampolineArgs, fmt.Sprintf("--test.gocoverdir=%s", TestingCoverDir(t)))
+	if v := CoverDir(tb); v != "" {
+		args = append(args, fmt.Sprintf("-test.gocoverdir=%s", v))
 	}
 
 	// Generate a random task name.
-	rb := make([]byte, 8)
-	_, err = rand.Read(rb)
+	jname, err := windows.UTF16PtrFromString(fmt.Sprintf("go-autotune-trampoline-%d", rand.Int()))
 	if err != nil {
-		t.Fatalf("Failed to generate random bytes: %s", err)
-	}
-	jobObjectName, err := windows.UTF16PtrFromString(hex.EncodeToString(rb))
-	if err != nil {
-		t.Fatalf("UTF16PtrFromString: %s", err)
+		tb.Fatalf("UTF16PtrFromString: %s", err)
 	}
 
 	// CreateJobObject
 	hJobObject, err := windows.CreateJobObject(
 		newSecurityAttributes(false),
-		jobObjectName,
+		jname,
 	)
 	if err != nil {
-		t.Fatalf("CreateJobObject: %s", err)
+		tb.Fatalf("CreateJobObject: %s", err)
 	}
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		err = windows.TerminateJobObject(hJobObject, 1)
 		if err != nil {
-			t.Logf("TerminateJobObject: %s", err)
+			tb.Logf("TerminateJobObject: %s", err)
 		}
 		_ = windows.CloseHandle(hJobObject)
 	})
@@ -201,14 +206,14 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	limit.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 
 	// Add memory limits if any
-	if mem > 0 {
-		limit.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_JOB_MEMORY
-		limit.JobMemoryLimit = uintptr(mem)
+	if opts.M1 > 0 {
+		limit.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_PROCESS_MEMORY
+		limit.ProcessMemoryLimit = uintptr(opts.M1)
 	}
 
-	if memProc > 0 {
-		limit.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_PROCESS_MEMORY
-		limit.ProcessMemoryLimit = uintptr(memProc)
+	if opts.M2 > 0 {
+		limit.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_JOB_MEMORY
+		limit.JobMemoryLimit = uintptr(opts.M2)
 	}
 
 	v1, err := windows.SetInformationJobObject(
@@ -218,52 +223,55 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		uint32(unsafe.Sizeof(limit)),
 	)
 	if err != nil {
-		t.Fatalf("SetInformationJobObject(Memory): %s", err)
+		tb.Fatalf("SetInformationJobObject(Memory): %s", err)
 	}
 	if v1 == 0 {
-		t.Fatalf("SetInformationJobObject(Memory): %d", v1)
+		tb.Fatalf("SetInformationJobObject(Memory): %d", v1)
 	}
 
 	// Add CPU limits if specified.
-	if cpu > 0 {
-		cpuLimitInfo := types.JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{
-			ControlFlags: types.JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | types.JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP,
+	if opts.CPU > 0 {
+		cpuLimitInfo := shared.JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{
+			ControlFlags: shared.JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | shared.JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP,
 			Value: func() uint32 {
-				v := cpu / float64(runtime.NumCPU()) * 10000
+				// Scaled for 10000.
+				v := opts.CPU / float64(runtime.NumCPU()) * 10000
 				if v < 10000 {
-					return uint32(math.Round(v))
+					return uint32(math.Round(v)) // round off to 4 digits.
 				}
-				return 10000
+				panic(
+					fmt.Sprintf("CPUs=%f, JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP > 10000", opts.CPU),
+				)
 			}(),
 		}
-		v2, err := windows.SetInformationJobObject(
+		ret, err := windows.SetInformationJobObject(
 			hJobObject,
 			windows.JobObjectCpuRateControlInformation,
 			uintptr(unsafe.Pointer(&cpuLimitInfo)),
 			uint32(unsafe.Sizeof(cpuLimitInfo)),
 		)
-		if err != nil {
-			t.Fatalf("SetInformationJobObject(CPU): %s", err)
-		}
-		if v2 == 0 {
-			t.Fatalf("SetInformationJobObject(CPU): %d", v2)
+		// Return value is non zero if SetInformationJobObject succeeds.
+		// https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-setinformationjobobject#return-value
+		if err != nil || ret == 0 {
+			tb.Fatalf("SetInformationJobObject(CPU): %s", err)
 		}
 	}
 
 	// Use PROC_THREAD_ATTRIBUTE_JOB_LIST to ensure
 	// race-free way on starting a process within a JOBOBJECT.
+	// Inspired by https://devblogs.microsoft.com/oldnewthing/20230209-00/?p=107812
 	procThreadAttrs, err := windows.NewProcThreadAttributeList(1)
 	if err != nil {
-		t.Fatalf("NewProcThreadAttributeList(Task): %s", err)
+		tb.Fatalf("NewProcThreadAttributeList(Task): %s", err)
 	}
 
 	err = procThreadAttrs.Update(
-		types.PROC_THREAD_ATTRIBUTE_JOB_LIST,
+		shared.PROC_THREAD_ATTRIBUTE_JOB_LIST,
 		unsafe.Pointer(&hJobObject),
 		unsafe.Sizeof(hJobObject),
 	)
 	if err != nil {
-		t.Fatalf("UpdateProcThreadAttribute(Task): %s", err)
+		tb.Fatalf("UpdateProcThreadAttribute(Task): %s", err)
 	}
 
 	// Create pipes for stdout and stderr
@@ -276,9 +284,9 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		0,
 	)
 	if err != nil {
-		t.Fatalf("Failed to create pipe: %s", err)
+		tb.Fatalf("Failed to create pipe: %s", err)
 	}
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		_ = windows.CloseHandle(stdoutPipeRead)
 		_ = windows.CloseHandle(stdoutPipeWrite)
 	})
@@ -292,9 +300,9 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		0,
 	)
 	if err != nil {
-		t.Fatalf("Failed to create pipe: %s", err)
+		tb.Fatalf("Failed to create pipe: %s", err)
 	}
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		_ = windows.CloseHandle(stderrPipeRead)
 		_ = windows.CloseHandle(stderrPipeWrite)
 	})
@@ -311,12 +319,12 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 
 	// Build args ptr
 	// argsPtr, err := windows.UTF16PtrFromString(`"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" dir env:`)
-	argsPtr, err := windows.UTF16PtrFromString(strings.Join(trampolineArgs, " "))
+	argsPtr, err := windows.UTF16PtrFromString(strings.Join(args, " "))
 	if err != nil {
-		t.Fatalf("UTF16PtrFromString(Args): %s", err)
+		tb.Fatalf("UTF16PtrFromString(Args): %s", err)
 	}
 
-	t.Logf("Running via trampoline =%v", trampolineArgs)
+	tb.Logf("Running via trampoline =%v", args)
 	err = windows.CreateProcess(
 		nil,
 		argsPtr,
@@ -330,11 +338,11 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 		processInfo,
 	)
 	if err != nil {
-		t.Fatalf("Failed to create process: %s", err)
+		tb.Fatalf("Failed to create process: %s", err)
 	}
 
 	// Don't need the thread handle for anything.
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		_ = windows.CloseHandle(processInfo.Thread)
 	})
 
@@ -342,41 +350,43 @@ func WindowsRun(t *testing.T, cpu float64, mem, memProc int64, autoTuneEnv strin
 	process, err := os.FindProcess(int(processInfo.ProcessId))
 	if err != nil {
 		// If we can't find the process via os.FindProcess,
-		// terminate the process as that's what we rely on for all further operations on the
-		// object.
+		// terminate the process as that's what we rely on for all further operations
+		// on the object.
 		if tErr := windows.TerminateProcess(processInfo.Process, 1); tErr != nil {
-			t.Fatalf("failed to terminate process after process not found: %s", tErr)
+			tb.Fatalf("failed to terminate process after process not found: %s", tErr)
 		}
-		t.Fatalf("failed to find process after starting: %s", err)
+		tb.Fatalf("failed to find process after starting: %s", err)
 	}
 
 	if process == nil {
-		t.Fatalf("Process did not start")
+		tb.Fatalf("Process did not start")
 	}
 
+	// Stream output from trampoline to t.Log via windows pipes.
 	var wg sync.WaitGroup
-
-	stdoutLogger := NewOutputLogger(t, "stdout")
+	stdout := NewWriter(tb, "stdout")
 	wg.Add(1)
-	go pipeLogger(ctx, &wg, stdoutPipeRead, stdoutLogger)
+	go pipeStream(ctx, tb, &wg, stdoutPipeRead, stdout)
 
-	stderrLogger := NewOutputLogger(t, "stderr")
+	stderr := NewWriter(tb, "stderr")
 	wg.Add(1)
-	go pipeLogger(ctx, &wg, stderrPipeRead, stderrLogger)
+	go pipeStream(ctx, tb, &wg, stderrPipeRead, stderr)
 
 	procState, err := process.Wait()
 	if err != nil {
-		t.Errorf("Error calling Wait: %s", err)
-	}
-	if !procState.Success() {
-		t.Errorf("Trampoline returned: %d", procState.ExitCode())
+		tb.Errorf("Error calling Wait: %s", err)
 	}
 
-	// Stop reader and writer go routines.
+	// Stop pipe i/o go routines.
 	cancel()
 
 	// Wait for pipe reader goroutines to complete
+	// we wait first then check procState to give time for pipes
+	// to write to the logger.
 	wg.Wait()
+	if !procState.Success() {
+		tb.Errorf("Trampoline returned: %d", procState.ExitCode())
+	}
 }
 
 // newSecurityAttributes creates a SECURITY_ATTRIBUTES structure, that specifies the

@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/tprasadtp/go-autotune/internal/types"
+	"github.com/tprasadtp/go-autotune/internal/shared"
 	"golang.org/x/sys/windows"
 )
 
@@ -25,7 +25,7 @@ func isFlagSet(ref, value uint32) bool {
 // both to the virtual machine as well as to the job object of the container
 // running inside the virtual machine automatically.
 func getCPUQuota(_ ...Option) (float64, error) {
-	cpuInfo := types.JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{}
+	cpuInfo := shared.JOBOBJECT_CPU_RATE_CONTROL_INFORMATION{}
 	err := windows.QueryInformationJobObject(
 		windows.Handle(0),
 		windows.JobObjectCpuRateControlInformation,
@@ -40,11 +40,11 @@ func getCPUQuota(_ ...Option) (float64, error) {
 	// Check if CPU quota is defined.
 	// JOB_OBJECT_CPU_RATE_CONTROL_ENABLE is set if the job's CPU rate to be controlled
 	// based on weight or hard cap.
-	if isFlagSet(types.JOB_OBJECT_CPU_RATE_CONTROL_ENABLE, cpuInfo.ControlFlags) {
+	if isFlagSet(shared.JOB_OBJECT_CPU_RATE_CONTROL_ENABLE, cpuInfo.ControlFlags) {
 		// The job's CPU rate is a hard limit. After the job reaches its CPU cycle
 		// limit for the current scheduling interval, no threads associated with the
 		// job will run until the next interval.
-		if isFlagSet(types.JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, cpuInfo.ControlFlags) {
+		if isFlagSet(shared.JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, cpuInfo.ControlFlags) {
 			// Portion of processor cycles that the threads in a job object can use
 			// during each scheduling interval, as the number of cycles per
 			// 10,000 cycles. Unlike Linux, this is specified for all cores on the system.
@@ -75,10 +75,12 @@ func getMemoryQuota(_ ...Option) (max, high int64, err error) {
 	}
 
 	// Memory can be limited by Job or process.
-	// process limit is or higher priority than Joblimit.
 	// Unlike Linux, this is a hard limit; there is no feature to add soft limit.
 	switch {
 	case info.ProcessMemoryLimit > 0:
+		if info.JobMemoryLimit > 0 && info.JobMemoryLimit < info.ProcessMemoryLimit {
+			return int64(info.JobMemoryLimit), 0, nil
+		}
 		return int64(info.ProcessMemoryLimit), 0, nil
 	case info.ProcessMemoryLimit == 0 && info.JobMemoryLimit > 0:
 		return int64(info.JobMemoryLimit), 0, nil
