@@ -105,7 +105,6 @@ package autotune
 
 import "github.com/tprasadtp/go-autotune/internal/autotune"
 
-//nolint:gochecknoinits // ignore
 func init() {
 	autotune.Configure()
 }
