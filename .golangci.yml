@@ -527,3 +527,7 @@ issues:
         - dupl
         - goheader
         - sloglint
+
+    # Workaround for https://github.com/golangci/golangci-lint/issues/4697
+    - path: autotune.go
+      text: "don't use `init` function"
