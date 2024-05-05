@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package parse
+package shared
 
 import (
 	"testing"
@@ -176,7 +176,7 @@ func TestMemlimit(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			s, err := Memlimit(tc.input)
+			s, err := ParseMemlimit(tc.input)
 			if tc.invalid {
 				if s != 0 {
 					t.Errorf("expect value to be 0 when input is invalid (%q)", tc.input)

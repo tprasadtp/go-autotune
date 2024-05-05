@@ -14,19 +14,19 @@ permissions: {}
 
 jobs:
   test:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
-        go:
-          - stable
-        os:
+        runs-on:
           - macos-latest
           - ubuntu-22.04
           - windows-2022
           - windows-2019
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
+        go:
+          - stable
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,8 +50,54 @@ jobs:
         run: go tool covdata percent -i .gocover
 
       - uses: actions/upload-artifact@v4
+        id: coverage-artifact
         with:
-          name: coverage-${{ matrix.os }}-${{ matrix.go }}
+          name: ${{ format('go-coverage-{0}-go-{1}', matrix.runs-on, matrix.go) }}
+          path: .gocover
+          retention-days: 30
+
+  # Only run if
+  # - Event is a push event
+  # - If pull request is created by author who is either owner, or colalborator
+  #   or member of the organization or pull request created by dependabot.
+  test-extended-platforms:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && (github.event.pull_request.author_association == 'OWNER' ||  github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.user.login == 'dependabot[bot]' )) }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on:
+          - ubuntu-latest
+        go:
+          - stable
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Go ${{ matrix.go }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Test
+        run: task --verbose test
+        env:
+          DEBUG: 1
+
+      - name: Coverage View Percent
+        run: go tool covdata percent -i .gocover
+
+      - uses: actions/upload-artifact@v4
+        id: coverage-artifact
+        with:
+          name: ${{ format('go-coverage-{0}-go-{1}', matrix.runs-on, matrix.go) }}
           path: .gocover
           retention-days: 30
 
@@ -77,7 +123,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: .gocover
-          pattern: coverage-*
+          pattern: go-coverage-*
           merge-multiple: true
 
       - name: Coverage View Percent
@@ -104,7 +150,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      index-digest: ${{steps.index-digest.outputs.digest}}
+      index-digest: ${{ steps.index-digest.outputs.digest }}
       digests-list-json: ${{ steps.digests-list-json.outputs.json }}
     steps:
       - name: Checkoutte
@@ -146,14 +192,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Images
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
         run: task --verbose example-images-push
         env:
-          TAG_LATEST: ${{ github.ref == 'refs/heads/master' && 'true' || 'false' }}
+          TAG_LATEST: ${{ github.ref_name == github.event.repository.default_branch && 'true' || 'false' }}
           EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
 
       - name: Get Index Digest
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
         shell: bash
         id: index-digest
         run: |
@@ -161,7 +207,7 @@ jobs:
           echo "digest=$(crane digest ${{vars.EXAMPLE_IMAGE}}:${{github.sha}})" >> "$GITHUB_OUTPUT"
 
       - name: Get Digests of Index and Manifests
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
         shell: bash
         id: digests-list-json
         run: |
@@ -176,10 +222,11 @@ jobs:
       actions: read
       packages: write
       id-token: write
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     needs:
       - test
+      - test-extended-platforms
       - example-images-build
     steps:
       - name: Install Cosign
@@ -201,9 +248,10 @@ jobs:
           ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-build.outputs.index-digest }}
 
   example-images-provenance:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
     needs:
       - test
+      - test-extended-platforms
       - example-images-build
     permissions:
       contents: read
@@ -222,7 +270,7 @@ jobs:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
 
   example-images-verification:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
     needs:
       - example-images-build
       - example-images-sign

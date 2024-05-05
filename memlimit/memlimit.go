@@ -14,8 +14,8 @@ import (
 	"strconv"
 
 	"github.com/tprasadtp/go-autotune/internal/discard"
-	"github.com/tprasadtp/go-autotune/internal/parse"
 	"github.com/tprasadtp/go-autotune/internal/platform"
+	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
 type config struct {
@@ -97,7 +97,7 @@ func Configure(opts ...Option) {
 	// Check if GOMEMLIMIT env variable is set.
 	env := os.Getenv("GOMEMLIMIT")
 	if env != "" {
-		limit, err := parse.Memlimit(env)
+		limit, err := shared.ParseMemlimit(env)
 		if err == nil && limit > 0 {
 			cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
 				"Setting GOMEMLIMIT from environment variable",
@@ -137,7 +137,7 @@ func Configure(opts ...Option) {
 	// If MaxReservePercent is less than 0, use default values.
 	switch {
 	case cfg.MaxReservePercent < 0:
-		if max >= 5*parse.GiByte {
+		if max >= 5*shared.GiByte {
 			cfg.MaxReservePercent = 5
 		} else {
 			cfg.MaxReservePercent = 10
@@ -147,7 +147,7 @@ func Configure(opts ...Option) {
 			slog.Uint64("memory.reserve.percent", uint64(cfg.MaxReservePercent)),
 		)
 
-		if max >= 5*parse.GiByte {
+		if max >= 5*shared.GiByte {
 			cfg.MaxReservePercent = 5
 		} else {
 			cfg.MaxReservePercent = 10

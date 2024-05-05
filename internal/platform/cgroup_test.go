@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-//go:build linux
-
 package platform
 
 import (
@@ -10,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/tprasadtp/go-autotune/internal/parse"
+	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
 func TestGetInterfacePath(t *testing.T) {
@@ -213,30 +211,30 @@ func TestGetMemoryQuotaFromCgroup(t *testing.T) {
 		{
 			name: "mem-high-250",
 			path: "mem-high-250",
-			high: 250 * parse.MiByte,
+			high: 250 * shared.MiByte,
 		},
 		{
 			name: "mem-max-250",
 			path: "mem-max-250",
-			max:  250 * parse.MiByte,
+			max:  250 * shared.MiByte,
 		},
 		{
 			name: "mem-max-250-high-200",
 			path: "mem-max-250-high-200",
-			max:  250 * parse.MiByte,
-			high: 200 * parse.MiByte,
+			max:  250 * shared.MiByte,
+			high: 200 * shared.MiByte,
 		},
 		{
 			name: "mem-max-250-high-250",
 			path: "mem-max-250-high-250",
-			max:  250 * parse.MiByte,
-			high: 250 * parse.MiByte,
+			max:  250 * shared.MiByte,
+			high: 250 * shared.MiByte,
 		},
 		{
 			name: "mem-max-300-high-500",
 			path: "mem-max-300-high-500",
-			max:  300 * parse.MiByte,
-			high: 500 * parse.MiByte,
+			max:  300 * shared.MiByte,
+			high: 500 * shared.MiByte,
 		},
 		{
 			name: "mem-high-invalid",
