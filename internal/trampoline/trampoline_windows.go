@@ -154,10 +154,6 @@ func trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configu
 	//
 	// Ideally we would set per set timeouts, but they are not available yet.
 	// See https://github.com/golang/go/issues/48157 for more info.
-	// Set timeouts.
-	//
-	// Ideally we would set per set timeouts, but they are not available yet.
-	// See https://github.com/golang/go/issues/48157 for more info.
 	ctx, cancel := context.WithTimeout(context.Background(), opts.Timeout)
 	defer cancel()
 
