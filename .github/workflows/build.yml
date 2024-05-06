@@ -24,8 +24,6 @@ jobs:
           - ubuntu-22.04
           - windows-2022
           - windows-2019
-        go:
-          - stable
     runs-on: ${{ matrix.runs-on }}
     steps:
       - name: Checkout
@@ -33,10 +31,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Go ${{ matrix.go }}
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: stable
 
       - name: Install Task
         run: go install github.com/go-task/task/v3/cmd/task@latest
@@ -52,52 +50,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         id: coverage-artifact
         with:
-          name: ${{ format('go-coverage-{0}-go-{1}', matrix.runs-on, matrix.go) }}
-          path: .gocover
-          retention-days: 30
-
-  # Only run if
-  # - Event is a push event
-  # - If pull request is created by author who is either owner, or colalborator
-  #   or member of the organization or pull request created by dependabot.
-  test-extended-platforms:
-    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && (github.event.pull_request.author_association == 'OWNER' ||  github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.user.login == 'dependabot[bot]' )) }}
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        runs-on:
-          - ubuntu-latest
-        go:
-          - stable
-    runs-on: ${{ matrix.runs-on }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Setup Go ${{ matrix.go }}
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go }}
-
-      - name: Install Task
-        run: go install github.com/go-task/task/v3/cmd/task@latest
-
-      - name: Test
-        run: task --verbose test
-        env:
-          DEBUG: 1
-
-      - name: Coverage View Percent
-        run: go tool covdata percent -i .gocover
-
-      - uses: actions/upload-artifact@v4
-        id: coverage-artifact
-        with:
-          name: ${{ format('go-coverage-{0}-go-{1}', matrix.runs-on, matrix.go) }}
+          name: ${{ format('go-coverage-{0}', matrix.runs-on) }}
           path: .gocover
           retention-days: 30
 
@@ -144,7 +97,7 @@ jobs:
           path: .gocover
           retention-days: 30
 
-  example-images-build:
+  build-example-images:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -179,7 +132,7 @@ jobs:
           --output=group
           --output-group-begin "::group::{{.TASK_GROUP_NAME}}"
           --output-group-end "::endgroup::"
-          example-images-build
+          build-example-images
         env:
           EXAMPLE_IMAGE: ${{ vars.EXAMPLE_IMAGE }}
 
@@ -216,18 +169,17 @@ jobs:
           crane manifest ${{vars.EXAMPLE_IMAGE}}@${{steps.index-digest.outputs.digest}} |jq -r '.manifests| .[] | .digest' >> digests.txt
           echo "json=$(jq -Mcn --arg v "$(cat digests.txt)" '{digest:$v|split("\n")}')" >> "$GITHUB_OUTPUT"
 
-  example-images-sign:
+  sign-example-images:
     permissions:
       contents: read
       actions: read
       packages: write
       id-token: write
-    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    if: ${{ github.event_name == 'push' && (github.ref_name == github.event.repository.default_branch || github.ref_type == 'tag' ) }}
     runs-on: ubuntu-latest
     needs:
       - test
-      - test-extended-platforms
-      - example-images-build
+      - build-example-images
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -245,14 +197,13 @@ jobs:
           --yes
           --recursive
           --oidc-provider=github-actions
-          ${{ vars.EXAMPLE_IMAGE }}@${{ needs.example-images-build.outputs.index-digest }}
+          ${{ vars.EXAMPLE_IMAGE }}@${{ needs.build-example-images.outputs.index-digest }}
 
-  example-images-provenance:
-    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+  provenance-example-images:
+    if: ${{ github.event_name == 'push' && (github.ref_name == github.event.repository.default_branch || github.ref_type == 'tag' ) }}
     needs:
       - test
-      - test-extended-platforms
-      - example-images-build
+      - build-example-images
     permissions:
       contents: read
       actions: read
@@ -260,7 +211,7 @@ jobs:
       packages: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.example-images-build.outputs.digests-list-json) }}
+      matrix: ${{ fromJson(needs.build-example-images.outputs.digests-list-json) }}
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
       image: ${{ vars.EXAMPLE_IMAGE }}
@@ -269,19 +220,19 @@ jobs:
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
 
-  example-images-verification:
-    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+  verify-example-images:
+    if: ${{ github.event_name == 'push' && (github.ref_name == github.event.repository.default_branch || github.ref_type == 'tag' ) }}
     needs:
-      - example-images-build
-      - example-images-sign
-      - example-images-provenance
+      - build-example-images
+      - sign-example-images
+      - provenance-example-images
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.example-images-build.outputs.digests-list-json) }}
+      matrix: ${{ fromJson(needs.build-example-images.outputs.digests-list-json) }}
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3

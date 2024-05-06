@@ -520,10 +520,10 @@ tasks:
           KO_PLATFORM: "windows/amd64"
           KO_BASE_IMAGE: "mcr.microsoft.com/windows/nanoserver/insider:10.0.26080.1"
           KO_TARBALL_OUTPUT: "windows-2025-amd64.tar.gz"
-  example-images-build:
+  build-example-images:
     desc: "Build example docker images"
     aliases:
-      - "build-example-images"
+      - "example-images-build"
     deps:
       - internal:build-example-image-tarball:linux-amd64
       - internal:build-example-image-tarball:linux-arm64
@@ -531,11 +531,11 @@ tasks:
       - internal:build-example-image-tarball:windows-amd64-2019
       - internal:build-example-image-tarball:windows-amd64-2022
       - internal:build-example-image-tarball:windows-amd64-2025
-  example-images-push:
+  push-example-images:
     desc: "Push example images."
     dir: example
     aliases:
-      - "push-example-images"
+      - "example-images-push"
     vars:
       IMAGE: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
       GIT_COMMIT:
