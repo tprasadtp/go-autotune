@@ -3,7 +3,32 @@
 
 package maxprocs
 
-import "log/slog"
+import (
+	"context"
+	"log/slog"
+
+	"github.com/tprasadtp/go-autotune/internal/quota"
+)
+
+var (
+	_ CPUQuotaDetector = (*CPUQuotaDetectorFunc)(nil)
+	_ CPUQuotaDetector = (*quota.Detector)(nil)
+)
+
+// CPUQuotaDetector detects cpu limits configured for the workload.
+type CPUQuotaDetector interface {
+	DetectCPUQuota(ctx context.Context) (float64, error)
+}
+
+// CPUQuotaDetectorFunc s an adapter to allow the use of ordinary functions as
+// [CPUQuotaDetector]. If f is a function with the appropriate signature,
+// CPUQuotaDetectorFunc(f) is a [CPUQuotaDetector] that calls f.
+type CPUQuotaDetectorFunc func(context.Context) (float64, error)
+
+// DetectCPUQuota Implements [CPUQuotaDetector] interface.
+func (fn CPUQuotaDetectorFunc) DetectCPUQuota(ctx context.Context) (float64, error) {
+	return fn(ctx)
+}
 
 // Option to apply while setting GOMAXPROCS.
 type Option interface {
@@ -23,7 +48,7 @@ func WithLogger(logger *slog.Logger) Option {
 	if logger != nil {
 		return &optionFunc{
 			fn: func(c *config) {
-				c.Logger = logger
+				c.logger = logger
 			},
 		}
 	}
@@ -36,29 +61,38 @@ func WithLogger(logger *slog.Logger) Option {
 // CPU throttling. Replacing this with custom function may result in underutilized
 // or significantly throttled CPU.
 //
-// Unless you are sure of your requirements, do not use this.
+// Unless you are sure of your requirements, do not use this. If fractional CPUs
+// is not desired for kubernetes workloads, prefer using [CPU Management with static policy].
+//
+// [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
 func WithRoundFunc(fn func(float64) int) Option {
 	if fn != nil {
 		return &optionFunc{
 			fn: func(c *config) {
-				c.RoundFunc = fn
+				c.roundFunc = fn
 			},
 		}
 	}
 	return nil
 }
 
-// WithCPUQuotaFunc can be used to replace default CPU quota detection algorithm.
+// WithCPUQuotaDetector can be used to replace default CPU quota detection algorithm.
 //
-// This is an advanced option intended to be used to support exotic configurations.
-// Do not use this unless you are familiar with the internals of this package.
-func WithCPUQuotaFunc(fn func() (float64, error)) Option {
-	if fn != nil {
+// This is an advanced option intended to be used to support custom configurations.
+func WithCPUQuotaDetector(d CPUQuotaDetector) Option {
+	if d != nil {
 		return &optionFunc{
 			fn: func(c *config) {
-				c.CPUQuotaFunc = fn
+				c.detector = d
 			},
 		}
 	}
 	return nil
+}
+
+// DefaultCPUQuotaDetector returns default [CPUQuotaDetector].
+// This can be used to extend existing quota detection algorithm without
+// re-implementing it.
+func DefaultCPUQuotaDetector() CPUQuotaDetector {
+	return &quota.Detector{}
 }

@@ -6,6 +6,7 @@
 package autotune
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/tprasadtp/go-autotune/internal/env"
@@ -22,10 +23,8 @@ func configure() {
 	if env.IsDebug("GO_AUTOTUNE") || env.IsDebug("GOAUTOTUNE") {
 		logger = slog.Default()
 	}
-	maxprocs.Configure(
-		maxprocs.WithLogger(logger),
-	)
-	memlimit.Configure(
-		memlimit.WithLogger(logger),
-	)
+	ctx := context.Background()
+
+	_ = maxprocs.Configure(ctx, maxprocs.WithLogger(logger))
+	_ = memlimit.Configure(ctx, memlimit.WithLogger(logger))
 }

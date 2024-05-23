@@ -4,7 +4,7 @@
 // Package autotune which implements autotune functions.
 //
 // This is an internal package with only single method exported
-// to allow easily benchmark and test without side effects of init.
+// to allow easy benchmarking and tests without side effects of init.
 package autotune
 
 // Configure configures GOMAXPROCS and GOMEMLIMIT. This is only intended

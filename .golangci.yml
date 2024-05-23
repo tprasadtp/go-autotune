@@ -20,12 +20,8 @@ linters-settings:
     # Default: 0.0
     package-average: 0
 
-  # Check declaration order and count of types, constants, variables and functions.
-  decorder:
-    # If true, `init` func can be anywhere in file
-    # (does not have to be declared before all other functions).
-    # Default: true (disabled)
-    disable-init-func-first-check: false
+  dogsled:
+    max-blank-identifiers: 2
 
   gocyclo:
     min-complexity: 50
@@ -43,14 +39,8 @@ linters-settings:
     # Default: false
     check-blank: false
     exclude-functions:
-      - bytes/Buffer.Write
-      - bytes/Buffer.WriteByte
-      - bytes/Buffer.WriteString
-      - strings/Builder.WriteString
-      - strings/Builder.Write
-      - strings/Builder.WriteRune
-      - crypto/Hash.Write
-      - io/Discard.Write
+      - crypto/rand.Read
+      - io.Copy(*bytes.Buffer)
       - os/Stderr.Write
       - os/Stdout.Write
 
@@ -101,7 +91,7 @@ linters-settings:
         skipRecvDeref: false
 
   goheader:
-    # Supports two types 'const` and `regexp`.
+    # Supports two types 'const' and 'regexp'.
     # Values can be used recursively.
     # Default: {}
     values:
@@ -202,12 +192,14 @@ linters-settings:
 
         # Use github.com/tprasadtp/go-githubapp
         - github.com/bradleyfalzon/ghinstallation:
-            reason: Does not support KMS backed keys or keys implementing crypto.Signer interface.
+            reason: >-
+              Does not support KMS backed keys or keys implementing crypto.Signer.
             recommendations:
               - github.com/tprasadtp/go-githubapp
 
         - github.com/bradleyfalzon/ghinstallation/v2:
-            reason: "Does not support KMS backed keys or keys implementing crypto.Signer interface."
+            reason: >-
+              Does not support KMS backed keys or keys implementing crypto.Signer.
             recommendations:
               - github.com/tprasadtp/go-githubapp
 
@@ -223,13 +215,10 @@ linters-settings:
       - p: "fmt.Print(f|ln)?(.*)"
         msg: "Do not commit print statements."
 
-      # Too many false positives for tests.
-      - p: time.Sleep
-        msg: "Avoid using time.Sleep in your code."
-
     # Exclude godoc examples from forbidigo checks.
     # Default: true
     exclude-godoc-examples: true
+
     # Instead of matching the literal source code,
     # use type information to replace expressions with strings that contain the package name
     # and (for methods and fields) the type name.
@@ -245,22 +234,13 @@ linters-settings:
     # Run `go tool vet help` to see all analyzers.
     # Default: []
     disable:
-      - fieldalignment # too strict
+      - fieldalignment # too noisy, automatic fixe removes code comments.
     # Settings per analyzer.
     settings:
       shadow:
         # Whether to be strict about shadowing; can be noisy.
         # Default: false
         strict: true
-
-  ireturn:
-    # Only allow error, stdlib, empty and generic interfaces.
-    # Default: [errors, empty, stdlib, anon]
-    allow:
-      - error # error interface
-      - empty # interface{} or any
-      - stdlib # interfaces in stdlib
-      - generic # generic interfaces added in go 1.18 (type constraints)
 
   nakedret:
     # Make an issue if func has more lines of code than this setting, and it has naked returns.
@@ -269,7 +249,7 @@ linters-settings:
 
   nestif:
     # [Default: 5]
-    min-complexity: 8
+    min-complexity: 9
 
   nolintlint:
     # Exclude following linters from requiring an explanation.
@@ -309,7 +289,7 @@ linters-settings:
     # Enforce a single key naming convention.
     # Values: snake, kebab, camel, pascal
     # Default: ""
-    key-naming-case: snake
+    key-naming-case: ""
     # Enforce putting arguments on separate lines.
     # Default: false
     args-on-sep-lines: false
@@ -321,24 +301,6 @@ linters-settings:
     # and `testing.TB` as arguments are checked.
     # Default: false
     all: true
-
-  thelper:
-    test:
-      # Check t.Helper() begins helper function.
-      # Default: true
-      begin: false
-    benchmark:
-      # Check b.Helper() begins helper function.
-      # Default: true
-      begin: false
-    tb:
-      # Check tb.Helper() begins helper function.
-      # Default: true
-      begin: false
-    fuzz:
-      # Check f.Helper() begins helper function.
-      # Default: true
-      begin: false
 
 linters:
   disable-all: true
@@ -359,7 +321,7 @@ linters:
     - bodyclose # checks whether HTTP response body is closed successfully
     - cyclop # checks function and package cyclomatic complexity
     - dupl # tool for code clone detection
-    - decorder # check declaration order and count of types, constants, variables and functions.
+    - dogsled # checks assignments with too many blank identifiers (e.g. x, _, _, _, := f())
     - durationcheck # checks for two durations multiplied together
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
@@ -368,6 +330,7 @@ linters:
     - forbidigo # forbids identifiers
     - funlen # tool for detection of long functions
     - gochecknoinits # checks that no init functions are present in Go code
+    - gochecknoglobals # checks that no global variables exist
     - gocognit # computes and checks the cognitive complexity of functions
     - goconst # finds repeated strings that could be replaced by a constant
     - gocritic # provides diagnostics that check for bugs, performance and style issues
@@ -410,7 +373,6 @@ linters:
     - importas # enforces consistent import aliases
     - goheader # checks for headers
     - containedctx # detects struct contained context.Context field
-    - thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
 
     ## you may want to enable
     #- godox # detects FIXME, TODO and other comment keywords
@@ -420,18 +382,17 @@ linters:
     #- gomnd # [too noisy] detects magic numbers
     #- lll # [mostly useless] reports long lines
     #- exhaustruct # [mostly useless] checks if all structure fields are initialized
-    #- gochecknoglobals # [useless, unless you are a beginner] checks that no global variables exist
     #- contextcheck # [too many false positives] checks the function whether use a non-inherited context
+    #- decorder # [code is not more readable] check declaration order and count of types, constants, variables and functions.
     #- depguard # [replaced by gomodguard] checks if package imports are in a list of acceptable packages
-    #- dogsled # checks assignments with too many blank identifiers (e.g. x, _, _, _, := f())
     #- dupword # [useless without config] checks for duplicate words in the source code
     #- execinquery # [deprecated] checks query string in Query function which reads your Go src files and warning it finds
     #- forcetypeassert # [replaced by errcheck] finds forced type assertions
     #- goerr113 # [too strict] checks the errors handling expressions
     #- gofmt # [replaced by goimports] checks whether code was gofmt-ed
     #- gofumpt # [replaced by goimports, gofumports is not available yet] checks whether code was gofumpt-ed
-    #- grouper # analyzes expression groups
-    #- maintidx # measures the maintainability index of each function
+    #- grouper # [code is less readable and ugly] analyzes expression groups
+    #- maintidx # [cyclop and friends] measures the maintainability index of each function
     #- misspell # [useless] finds commonly misspelled English words in comments
     #- nlreturn # [too strict and mostly code is not more readable] checks for a new line before return and branch statements to increase code clarity
     #- paralleltest # [too many false positives] detects missing usage of t.Parallel() method in your Go test
@@ -440,6 +401,7 @@ linters:
     #- varnamelen [too noisy] # checks that the length of a variable's name matches its scope
     #- ireturn # [useless as we use functional options with interfaces a lot] accept interfaces, return concrete types (with stdlib interfaces ignored)
     #- testableexamples # checks if examples are testable (have an expected output)
+    #- thelper # [too noisy] detects golang test helpers without t.Helper() call and checks the consistency of test helpers
 
     ## deprecated
     #- deadcode # [deprecated, replaced by unused] finds unused code
@@ -490,44 +452,43 @@ issues:
     # Disable some linters for testing code.
     - path: '(.+)_test\.go'
       linters:
-        - dupl
-        - nestif
-        - funlen
+        - containedctx
         - cyclop
+        - dupl
+        - funlen
+        - gochecknoglobals
+        - gocognit
         - goconst
         - gocyclo
-        - gocognit
-        - wrapcheck
-        - containedctx
+        - nestif
         - sloglint
+        - wrapcheck
 
     # Disable some linters for generated code.
     - path: 'testdata\.go'
       linters:
         - funlen
-        - gocyclo
+        - gochecknoglobals
+        - gocognit
         - goconst
         - gocyclo
-        - gocognit
-        - wrapcheck
         - sloglint
+        - wrapcheck
 
     # Disable some linters for ad-hoc scripts and example scripts.
     - path: '(example|generate)\.go'
       linters:
-        - wrapcheck
         - forbidigo
-        - sloglint
-        - gocyclo
+        - gochecknoglobals
         - gocognit
+        - gocyclo
+        - sloglint
+        - wrapcheck
 
     # Disable go-header checks for example files
-    - path: 'example_(.*)\.go'
+    - path: 'example(s)?_(.*)\.go'
       linters:
         - dupl
+        - gochecknoglobals
         - goheader
         - sloglint
-
-    # Workaround for https://github.com/golangci/golangci-lint/issues/4697
-    - path: autotune.go
-      text: "don't use `init` function"

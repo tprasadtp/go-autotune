@@ -15,13 +15,12 @@ import (
 	"strconv"
 
 	"github.com/tprasadtp/go-autotune/internal/discard"
-	"github.com/tprasadtp/go-autotune/internal/platform"
 )
 
 type config struct {
-	Logger       *slog.Logger
-	RoundFunc    func(float64) int
-	CPUQuotaFunc func() (float64, error)
+	logger    *slog.Logger
+	detector  CPUQuotaDetector
+	roundFunc func(float64) int
 }
 
 // Current returns current GOMAXPROCS settings.
@@ -51,39 +50,36 @@ func Current() int {
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 // [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
 // [Vertical Pod autoscaling]: https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
-func Configure(opts ...Option) {
-	cfg := &config{}
-	ctx := context.Background()
+func Configure(ctx context.Context, opts ...Option) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if ctx.Err() != nil {
+		return fmt.Errorf("maxprocs: %w", ctx.Err())
+	}
 
 	// Apply all options.
+	cfg := &config{}
 	for i := range opts {
 		if opts[i] != nil {
 			opts[i].apply(cfg)
 		}
 	}
 
-	// If logger is nil, use a discard logger.
-	if cfg.Logger == nil {
-		cfg.Logger = slog.New(discard.NewHandler())
+	// If logger is nil, use a logger backed by discard handler.
+	if cfg.logger == nil {
+		cfg.logger = slog.New(discard.NewHandler())
 	}
 
-	// If CPUQuotaFunc is not specified, use default.
-	if cfg.CPUQuotaFunc == nil {
-		cfg.CPUQuotaFunc = func() (float64, error) {
-			v, err := platform.GetCPUQuota()
-			if err != nil {
-				return -1, fmt.Errorf("maxprocs: failed to get cpu quota: %w", err)
-			}
-			return v, nil
-		}
+	// If detector is nil, use default detector.
+	if cfg.detector == nil {
+		cfg.detector = DefaultCPUQuotaDetector()
 	}
 
 	// If rounding function is not specified, use math.Ceil
-	if cfg.RoundFunc == nil {
-		cfg.RoundFunc = func(f float64) int {
-			if f < 0 {
-				return 0
-			}
+	if cfg.roundFunc == nil {
+		cfg.roundFunc = func(f float64) int {
 			return int(math.Ceil(f))
 		}
 	}
@@ -96,58 +92,65 @@ func Configure(opts ...Option) {
 		maxProcsEnv, err := strconv.Atoi(env)
 		if err == nil && maxProcsEnv > 0 {
 			if snapshot != maxProcsEnv {
-				cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
+				cfg.logger.LogAttrs(ctx, slog.LevelInfo,
 					"Setting GOMAXPROCS from environment variable",
 					slog.String("GOMAXPROCS", env))
 				runtime.GOMAXPROCS(maxProcsEnv)
 			} else {
-				cfg.Logger.LogAttrs(ctx, slog.LevelInfo,
+				cfg.logger.LogAttrs(ctx, slog.LevelInfo,
 					"GOMAXPROCS is already set from environment variable",
 					slog.String("GOMAXPROCS", env))
 			}
-		} else {
-			cfg.Logger.LogAttrs(ctx, slog.LevelError,
-				"Invalid GOMAXPROCS environment variable",
-				slog.String("GOMAXPROCS", env))
+			return nil
 		}
-		return
+
+		return fmt.Errorf("maxprocs: invalid GOMAXPROCS environment variable: %q", env)
 	}
 
 	// Get CPU quota.
-	quota, err := cfg.CPUQuotaFunc()
+	quota, err := cfg.detector.DetectCPUQuota(ctx)
 	if err != nil {
-		if !errors.Is(err, errors.ErrUnsupported) {
-			cfg.Logger.LogAttrs(ctx, slog.LevelError, "Failed to get cpu quota",
-				slog.Any("err", err))
+		// Ignore unsupported platform error and do nothing.
+		if errors.Is(err, errors.ErrUnsupported) {
+			return nil
 		}
-
-		return
-	}
-
-	if quota > 0 {
-		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained cpu quota",
-			slog.Float64("cpu.quota", quota),
+		cfg.logger.LogAttrs(ctx, slog.LevelError, "Failed to obtain cpu quota",
+			slog.Any("err", err),
 		)
-
-		// Round off fractional CPU using defined RoundFunc. Default is math.Ceil.
-		procs := cfg.RoundFunc(quota)
-
-		// GOMAXPROCS ensure at-least 1
-		if procs < 1 {
-			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Selecting minimum possible GOMAXPROCS value")
-			procs = 1
-		}
-		if snapshot != procs {
-			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "Setting GOMAXPROCS",
-				slog.String("GOMAXPROCS", strconv.FormatInt(int64(procs), 10)),
-			)
-			runtime.GOMAXPROCS(procs)
-		} else {
-			cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "GOMAXPROCS is already set",
-				slog.String("GOMAXPROCS", strconv.FormatInt(int64(procs), 10)),
-			)
-		}
-	} else {
-		cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "CPU quota is not defined")
+		return fmt.Errorf("maxprocs: %w", err)
 	}
+
+	if quota <= 0 {
+		cfg.logger.LogAttrs(ctx, slog.LevelInfo, "CPU quota is not defined")
+		return nil
+	}
+
+	cfg.logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained cpu quota",
+		slog.Float64("cpu.quota", quota),
+	)
+
+	// Round off fractional CPU using defined RoundFunc. Default is math.Ceil.
+	procs := cfg.roundFunc(quota)
+
+	if procs < 0 {
+		return fmt.Errorf("maxprocs: RoundFunc returned negative value: %d", procs)
+	}
+
+	// GOMAXPROCS ensure at-least 1
+	if procs < 1 {
+		cfg.logger.LogAttrs(ctx, slog.LevelInfo, "Selecting minimum possible GOMAXPROCS value")
+		procs = 1
+	}
+
+	if snapshot != procs {
+		cfg.logger.LogAttrs(ctx, slog.LevelInfo, "Setting GOMAXPROCS",
+			slog.String("GOMAXPROCS", strconv.FormatInt(int64(procs), 10)),
+		)
+		runtime.GOMAXPROCS(procs)
+	} else {
+		cfg.logger.LogAttrs(ctx, slog.LevelInfo, "GOMAXPROCS is already set",
+			slog.String("GOMAXPROCS", strconv.FormatInt(int64(procs), 10)),
+		)
+	}
+	return nil
 }

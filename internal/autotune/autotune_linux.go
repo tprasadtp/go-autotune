@@ -6,10 +6,11 @@
 package autotune
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/tprasadtp/go-autotune/internal/env"
-	"github.com/tprasadtp/go-autotune/internal/platform"
+	"github.com/tprasadtp/go-autotune/internal/quota"
 	"github.com/tprasadtp/go-autotune/maxprocs"
 	"github.com/tprasadtp/go-autotune/memlimit"
 )
@@ -27,29 +28,19 @@ func configure() {
 	// To avoid parsing mountinfo and cgroup file twice,
 	// get cgroup interface path for current process' cgroup
 	// and re-use it.
-	cgroupPath, err := platform.GetCgroupInterfacePath()
-	cpuQuotaFunc := func() (float64, error) {
-		if err != nil {
-			//nolint:wrapcheck // ignore
-			return 0, err
-		}
-		return platform.GetCPUQuota(platform.WithCgroupInterfacePath(cgroupPath))
+	cgroupfs, err := quota.GetCgroupInterfacePath("")
+	if err != nil {
+		return
 	}
+	detector := quota.NewDetectorWithCgroupPath(cgroupfs)
+	ctx := context.Background()
 
-	memQuotaFunc := func() (int64, int64, error) {
-		if err != nil {
-			//nolint:wrapcheck // ignore
-			return 0, 0, err
-		}
-		return platform.GetMemoryQuota(platform.WithCgroupInterfacePath(cgroupPath))
-	}
-
-	maxprocs.Configure(
+	_ = maxprocs.Configure(ctx,
 		maxprocs.WithLogger(logger),
-		maxprocs.WithCPUQuotaFunc(cpuQuotaFunc),
+		maxprocs.WithCPUQuotaDetector(detector),
 	)
-	memlimit.Configure(
+	_ = memlimit.Configure(ctx,
 		memlimit.WithLogger(logger),
-		memlimit.WithMemoryQuotaFunc(memQuotaFunc),
+		memlimit.WithMemoryQuotaDetector(detector),
 	)
 }

@@ -7,189 +7,135 @@ import (
 	"testing"
 )
 
-func TestMemlimit(t *testing.T) {
-	type testCase struct {
-		name    string
-		input   string
-		expect  int64
-		invalid bool
-	}
-	tt := []testCase{
-		{
-			name:   "empty-string",
-			input:  "",
-			expect: 0,
-		},
-		{
-			name:    "spaces",
-			input:   "     ",
-			invalid: true,
-		},
-		{
-			name:   "zero",
-			input:  "0",
-			expect: 0,
-		},
-		{
-			name:   "zero-bytes",
-			input:  "0B",
-			expect: 0,
-		},
-		{
-			name:    "invalid-string",
-			input:   "foo-bar",
-			invalid: true,
-		},
-		{
-			name:    "hexadecimal",
-			input:   "0x1ffffff",
-			invalid: true,
-		},
-		{
-			name:    "negative",
-			input:   "-2.5MB",
-			invalid: true,
-		},
-		{
-			name:   "bytes(100mb)",
-			input:  "100000000",
-			expect: 1e8,
-		},
-		{
-			name:   "100kib",
-			input:  "100kib",
-			expect: KiByte * 100,
-		},
-		{
-			name:    "100KB",
-			input:   "100KB",
-			invalid: true,
-		},
-		{
-			name:    "99.99KB",
-			input:   "99.99KB",
-			invalid: true,
-		},
-		{
-			name:    "9.99MB",
-			input:   "9.99MB",
-			invalid: true,
-		},
-		{
-			name:    "9.99GB",
-			input:   "9.99GB",
-			invalid: true,
-		},
-		{
-			name:    "9.99TB",
-			input:   "9.99TB",
-			invalid: true,
-		},
-		{
-			name:   "100KiB",
-			input:  "100KiB",
-			expect: 100 * KiByte,
-		},
-		{
-			name:    "100Ki",
-			input:   "100Ki",
-			invalid: true,
-		},
-		{
-			name:   "1MiB",
-			input:  "1MiB",
-			expect: MiByte,
-		},
-		{
-			name:    "1.0Mi",
-			input:   "1.0Mi",
-			invalid: true,
-		},
-		{
-			name:    "9.9MiB",
-			input:   "9.9MiB",
-			invalid: true,
-		},
-		{
-			name:    "9.9Mi",
-			input:   "9.9Mi",
-			invalid: true,
-		},
-		{
-			name:   "1GiB",
-			input:  "1GiB",
-			expect: 1073741824,
-		},
-		{
-			name:    "1.0Gi",
-			input:   "1.0Gi",
-			invalid: true,
-		},
-		{
-			name:    "9.9GiB",
-			input:   "9.9GiB",
-			invalid: true,
-		},
-		{
-			name:    "9.9Gi",
-			input:   "9.9Gi",
-			invalid: true,
-		},
-		{
-			name:    "9.9TiB",
-			input:   "9.9TiB",
-			invalid: true,
-		},
-		{
-			name:    "9.9Ti",
-			input:   "9.9Ti",
-			invalid: true,
-		},
-		{
-			name:  "0KiB",
-			input: "0KiB",
-		},
-		{
-			name:  "0MiB",
-			input: "0MiB",
-		},
-		{
-			name:  "0GiB",
-			input: "0GiB",
-		},
-		{
-			name:  "0TiB",
-			input: "0TiB",
-		},
-		{
-			name:  "0",
-			input: "0",
-		},
-		{
-			name:  "0B",
-			input: "0B",
-		},
-		{
-			name:  "0b",
-			input: "0b",
-		},
+func TestParseMemlimit(t *testing.T) {
+	tt := []struct {
+		input  string
+		expect int64
+		valid  bool
+	}{
+		// Good numeric inputs.
+		{"1", 1, true},
+		{"12345", 12345, true},
+		{"012345", 12345, true},
+		{"98765432100", 98765432100, true},
+		{"9223372036854775807", 1<<63 - 1, true},
+
+		// Good trivial suffix inputs.
+		{"1B", 1, true},
+		{"12345B", 12345, true},
+		{"012345B", 12345, true},
+		{"98765432100B", 98765432100, true},
+		{"9223372036854775807B", 1<<63 - 1, true},
+
+		// Good binary suffix inputs.
+		{"1KiB", 1 << 10, true},
+		{"05KiB", 5 << 10, true},
+		{"1MiB", 1 << 20, true},
+		{"10MiB", 10 << 20, true},
+		{"1GiB", 1 << 30, true},
+		{"100GiB", 100 << 30, true},
+		{"1TiB", 1 << 40, true},
+		{"99TiB", 99 << 40, true},
+
+		// Good zero inputs.
+		{"0", 0, true},
+		{"0B", 0, true},
+		{"0KiB", 0, true},
+		{"0MiB", 0, true},
+		{"0GiB", 0, true},
+		{"0TiB", 0, true},
+
+		// Bad inputs.
+		{"-0", 0, false},
+		{"", 0, false},
+		{"-1", 0, false},
+		{"a12345", 0, false},
+		{"a12345B", 0, false},
+		{"12345x", 0, false},
+		{"0x12345", 0, false},
+
+		// Bad numeric inputs.
+		{"9223372036854775808", 0, false},
+		{"9223372036854775809", 0, false},
+		{"18446744073709551615", 0, false},
+		{"20496382327982653440", 0, false},
+		{"18446744073709551616", 0, false},
+		{"18446744073709551617", 0, false},
+		{"9999999999999999999999", 0, false},
+
+		// Bad trivial suffix inputs.
+		{"9223372036854775808B", 0, false},
+		{"9223372036854775809B", 0, false},
+		{"18446744073709551615B", 0, false},
+		{"20496382327982653440B", 0, false},
+		{"18446744073709551616B", 0, false},
+		{"18446744073709551617B", 0, false},
+		{"9999999999999999999999B", 0, false},
+
+		// Bad binary suffix inputs.
+		{"1Ki", 0, false},
+		{"05Ki", 0, false},
+		{"10Mi", 0, false},
+		{"100Gi", 0, false},
+		{"99Ti", 0, false},
+		{"22iB", 0, false},
+		{"B", 0, false},
+		{"iB", 0, false},
+		{"KiB", 0, false},
+		{"MiB", 0, false},
+		{"GiB", 0, false},
+		{"TiB", 0, false},
+		{"-120KiB", 0, false},
+		{"-891MiB", 0, false},
+		{"-704GiB", 0, false},
+		{"-42TiB", 0, false},
+		{"99999999999999999999KiB", 0, false},
+		{"99999999999999999MiB", 0, false},
+		{"99999999999999GiB", 0, false},
+		{"99999999999TiB", 0, false},
+		{"555EiB", 0, false},
+
+		// Mistaken SI suffix inputs.
+		{"0KB", 0, false},
+		{"0MB", 0, false},
+		{"0GB", 0, false},
+		{"0TB", 0, false},
+		{"1KB", 0, false},
+		{"05KB", 0, false},
+		{"1MB", 0, false},
+		{"10MB", 0, false},
+		{"1GB", 0, false},
+		{"100GB", 0, false},
+		{"1TB", 0, false},
+		{"99TB", 0, false},
+		{"1K", 0, false},
+		{"05K", 0, false},
+		{"10M", 0, false},
+		{"100G", 0, false},
+		{"99T", 0, false},
+		{"99999999999999999999KB", 0, false},
+		{"99999999999999999MB", 0, false},
+		{"99999999999999GB", 0, false},
+		{"99999999999TB", 0, false},
+		{"99999999999TiB", 0, false},
+		{"555EB", 0, false},
 	}
 	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.input, func(t *testing.T) {
 			s, err := ParseMemlimit(tc.input)
-			if tc.invalid {
-				if s != 0 {
-					t.Errorf("expect value to be 0 when input is invalid (%q)", tc.input)
-				}
-				if err == nil {
-					t.Errorf("expected error when input is invalid (%q)", tc.input)
-				}
-			} else {
+			if tc.valid {
 				if s != tc.expect {
 					t.Errorf("expect value=%d but got=%d", tc.expect, s)
 				}
 				if err != nil {
 					t.Errorf("expected no error but got (%s)", err)
+				}
+			} else {
+				if s != 0 {
+					t.Errorf("expect value to be 0 when input is invalid (%q)", tc.input)
+				}
+				if err == nil {
+					t.Errorf("expected error when input is invalid (%q)", tc.input)
 				}
 			}
 		})

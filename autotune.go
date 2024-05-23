@@ -48,7 +48,7 @@
 //   - If only [memory.max] is specified, GOMEMLIMIT is set to ([memory.max] - reserved).
 //   - If only [memory.high] limit is specified, GOMEMLIMIT is set to [memory.high].
 //
-// For a workload, running as a systemd unit with,
+// For example, when application is running as a systemd unit with,
 //
 //   - [MemoryMax]=250M and [MemoryHigh]=250M GOMEMLIMIT is set to 235929600 bytes.
 //     (250M - 250*(10%)) = 225MiB = 235929600. [MemoryHigh] is ignored as it is less than
@@ -86,6 +86,12 @@
 //   - [go.uber.org/automaxprocs]
 //   - [github.com/KimMachineGun/automemlimit]
 //
+// # Init function overhead
+//
+// Importing this package typically adds small 0.1.8 to 0.25ms init overhead.
+//
+//	init github.com/tprasadtp/go-autotune @1.4 ms, 0.28 ms clock, 37744 bytes, 83 allocs
+//
 // # Disable at Runtime
 //
 // To disable automatic configuration at runtime (for compiled binaries),
@@ -103,8 +109,11 @@
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information
 package autotune
 
-import "github.com/tprasadtp/go-autotune/internal/autotune"
+import (
+	"github.com/tprasadtp/go-autotune/internal/autotune"
+)
 
+//nolint:gochecknoinits // ignore
 func init() {
 	autotune.Configure()
 }

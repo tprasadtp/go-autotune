@@ -5,6 +5,7 @@ package autotune_test
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -42,12 +43,16 @@ func Example_inPlaceResourceResize() {
 	case "0", "off", "disable", "disabled", "no", "false":
 		slog.Info("Automatic resource limit configuration is disabled")
 	default:
-		maxprocs.Configure(
+		err := maxprocs.Configure(
+			ctx,
 			maxprocs.WithLogger(slog.Default()),
 		)
-		memlimit.Configure(
+		slog.Error("Failed to configure GOMAXPROCS", slog.Any("err", err))
+		err = memlimit.Configure(
+			ctx,
 			memlimit.WithLogger(slog.Default()),
 		)
+		slog.Error("Failed to configure GOMEMLIMIT", slog.Any("err", err))
 
 		ticker := time.NewTicker(interval)
 		wg.Add(1)
@@ -60,12 +65,20 @@ func Example_inPlaceResourceResize() {
 					slog.Info("Stopping background tasks...")
 					return
 				case <-ticker.C:
-					maxprocs.Configure(
+					err := maxprocs.Configure(
+						ctx,
 						maxprocs.WithLogger(slog.Default()),
 					)
-					memlimit.Configure(
+					if !errors.Is(err, context.Canceled) {
+						slog.Error("Failed to configure GOMAXPROCS", slog.Any("err", err))
+					}
+					err = memlimit.Configure(
+						ctx,
 						memlimit.WithLogger(slog.Default()),
 					)
+					if !errors.Is(err, context.Canceled) {
+						slog.Error("Failed to configure GOMEMLIMIT", slog.Any("err", err))
+					}
 				}
 			}
 		}()

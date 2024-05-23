@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-// Package trampoline provides utilities to re-exec test functions with resource limits.
+// Package trampoline provides utilities  to re-exec test functions with resource limits
+// as well as test helpers.
 package trampoline
 
 import (

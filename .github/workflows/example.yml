@@ -1,0 +1,191 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: build-example
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        type: string
+        required: true
+        description: "Example OCI image name."
+      image-tag-latest:
+        type: boolean
+        required: false
+        default: false
+        description: "Tag 'latest' for the image index."
+      image-push:
+        type: boolean
+        required: false
+        default: false
+        description: "Sign and Push OCI image to registry."
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      index-digest: ${{ steps.index-digest.outputs.digest }}
+      digests-list-json: ${{ steps.digests-list-json.outputs.json }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Install Ko
+        uses: ko-build/setup-ko@v0.6
+
+      - name: Install crane
+        run: go install github.com/google/go-containerregistry/cmd/crane@latest
+
+      - name: Build Images
+        run: >-
+          task
+          --verbose
+          --output=group
+          --output-group-begin "::group::{{.TASK_GROUP_NAME}}"
+          --output-group-end "::endgroup::"
+          build-example-images
+        env:
+          EXAMPLE_IMAGE: ${{ inputs.image-name }}
+
+      - name: Login to GitHub Container Registry
+        if: ${{ inputs.image-push }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Images
+        if: ${{ inputs.image-push }}
+        run: task --verbose example-images-push
+        env:
+          TAG_LATEST: ${{ inputs.image-tag-latest }}
+          EXAMPLE_IMAGE: ${{ inputs.image-name }}
+
+      - name: Get Index Digest
+        if: ${{ inputs.image-push }}
+        shell: bash
+        id: index-digest
+        run: |
+          set -eo pipefail
+          echo "digest=$(crane digest ${{vars.EXAMPLE_IMAGE}}:${{github.sha}})" >> "$GITHUB_OUTPUT"
+
+      - name: Get Digests of Index and Manifests
+        if: ${{ inputs.image-push }}
+        shell: bash
+        id: digests-list-json
+        run: |
+          set -eo pipefail
+          crane digest ${{vars.EXAMPLE_IMAGE}}@${{steps.index-digest.outputs.digest}} > digests.txt
+          crane manifest ${{vars.EXAMPLE_IMAGE}}@${{steps.index-digest.outputs.digest}} |jq -r '.manifests| .[] | .digest' >> digests.txt
+          echo "json=$(jq -Mcn --arg v "$(cat digests.txt)" '{digest:$v|split("\n")}')" >> "$GITHUB_OUTPUT"
+
+  provenance:
+    if: ${{ inputs.image-push }}
+    needs:
+      - build
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.build.outputs.digests-list-json) }}
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
+    with:
+      image: ${{ inputs.image-name }}
+      digest: ${{ matrix.digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  # Skip uploading to GHCR because this is not slsa build level 3,
+  # as L3 requires reusable workflows outside of caller's control.
+  provenance-github:
+    if: ${{ inputs.image-push }}
+    needs:
+      - build
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.build.outputs.digests-list-json) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ inputs.image-name }}
+          subject-digest: ${{ matrix.digest }}
+          push-to-registry: false # not slsa level 3
+
+  verify:
+    if: ${{ inputs.image-push }}
+    needs:
+      - build
+      - provenance
+      - provenance-github
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.build.outputs.digests-list-json) }}
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Install SLSA verifier
+        uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify SLSA Provenance Using SLSA Verifier
+        run: >-
+          slsa-verifier
+          --source-uri github.com/${{ github.repository }}
+          verify-image ${{ inputs.image-name }}@${{ matrix.digest }}
+
+      - name: Verify SLSA Provenance Using Cosign
+        run: >-
+          cosign verify-attestation
+          --certificate-identity-regexp "^https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml"
+          --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          --certificate-github-workflow-repository "${{ github.repository }}"
+          --type=slsaprovenance
+          --certificate-github-workflow-sha ${{ github.sha }}
+          ${{ inputs.image-name }}@${{matrix.digest}}
+
+      - name: Verify GitHub Native SLSA Provenance
+        run: >-
+          gh attestation verify
+          --predicate-type "https://slsa.dev/provenance/v1"
+          --repo ${{ github.repository }}
+          --deny-self-hosted-runners
+          oci://${{ inputs.image-name }}@${{matrix.digest}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

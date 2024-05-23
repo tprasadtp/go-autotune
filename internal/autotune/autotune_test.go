@@ -15,7 +15,18 @@ func TestIntegration(t *testing.T) {
 	tt := scenarios.All()
 	for _, tc := range tt {
 		t.Run(tc.Name, func(t *testing.T) {
-			trampoline.Trampoline(t, tc.Opts, tc.Verify, autotune.Configure)
+			trampoline.Trampoline(t,
+				tc.Opts,
+				tc.Verify,
+				autotune.Configure)
 		})
+	}
+}
+
+func BenchmarkConfigure(b *testing.B) {
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		autotune.Configure()
 	}
 }

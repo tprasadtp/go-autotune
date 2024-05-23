@@ -177,6 +177,7 @@ func trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configu
 	}
 
 	// Generate a random task name.
+	//nolint:gosec // ignore
 	jname, err := windows.UTF16PtrFromString(fmt.Sprintf("go-autotune-trampoline-%d", rand.Int()))
 	if err != nil {
 		tb.Fatalf("UTF16PtrFromString: %s", err)

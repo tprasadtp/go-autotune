@@ -13,11 +13,18 @@ data to stdout and exits.
 ## Docker
 
 Example docker images are only provided for limited number of platforms/architectures.
-They are signed and provide SLSA level 3 provenance.
+
+As examples are not covered by semver compatibility guarantees, semver tagged images are
+not provided. However, images are tagged with both short and full commit hashes to test
+a specific commit. `latest` tag corresponds to `HEAD` of the default branch.
+
+[SLSA build level 3][slsa-build-l3] provenance is attached to the images. This project
+_also_ provides [GitHub native provenance](https://github.com/tprasadtp/go-autotune/attestations)
+for images, though only at [SLSA build level 2][slsa-build-l2], [due to isolation requirements][slsa-levels-github-native].
 
 <div align="center">
 
-[![slsa-level3-badge](./images/slsa-level3-logo.svg)](https://slsa.dev/spec/v1.0/levels#build-l3)
+[![slsa-level3-badge](./images/slsa-level3-logo.svg)][slsa-build-l3]
 
 </div>
 
@@ -83,3 +90,6 @@ docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
   ![linux-systemd](./screenshots/linux-systemd-run.svg)
 
 [Windows container version compatibility]: https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility
+[slsa-build-l3]: https://slsa.dev/spec/v1.0/levels#build-l3
+[slsa-build-l2]: https://slsa.dev/spec/v1.0/levels#build-l2
+[slsa-levels-github-native]: https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds#about-slsa-levels-for-artifact-attestations
