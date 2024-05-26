@@ -19,9 +19,9 @@ import (
 )
 
 type config struct {
-	logger   *slog.Logger
-	detector MemoryQuotaDetector
-	reserve  int64
+	logger      *slog.Logger
+	detector    MemoryQuotaDetector
+	reserveFunc func(int64) int64
 }
 
 // Current returns current GOMEMLIMIT in bytes.
@@ -40,8 +40,8 @@ func Current() int64 {
 // when it is exceeded. For this reason, to let garbage collector free up memory early before
 // OOM killer is involved, a small percentage of hard memory limit is set aside as reserved.
 // This memory is fully accessible to the process and the runtime, but acts as a hint to the
-// garbage collector. By default, 10% is set as reserved, hard memory limit is less than 5Gi
-// and 5% otherwise.
+// garbage collector. By default, 10% is set as reserved with maximum reserve value of 100MiB.
+// See [WithReserveFunc] and [DefaultReserveFunc] for customizing this behavior.
 //
 // For Linux, cgroup v2 interface files are used to get memory limits.
 // cgroup memory limit [memory.max] is hard memory limit and [memory.high] is
@@ -59,7 +59,7 @@ func Current() int64 {
 //
 // For Windows, [QueryInformationJobObject] API is used to get memory limits.
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)
-// and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred
+// and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is preferred
 // over JobMemoryLimit. Both are considered hard limits.
 //
 // [memory.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
@@ -74,9 +74,7 @@ func Configure(ctx context.Context, opts ...Option) error {
 		return fmt.Errorf("memlimit: %w", ctx.Err())
 	}
 
-	cfg := &config{
-		reserve: -1,
-	}
+	cfg := &config{}
 
 	// Apply all options.
 	for i := range opts {
@@ -93,6 +91,11 @@ func Configure(ctx context.Context, opts ...Option) error {
 	// If detector is nil, use default detector.
 	if cfg.detector == nil {
 		cfg.detector = DefaultMemoryQuotaDetector()
+	}
+
+	// If reserve calculator is nil, use default.
+	if cfg.reserveFunc == nil {
+		cfg.reserveFunc = DefaultReserveFunc()
 	}
 
 	var limit int64
@@ -154,37 +157,38 @@ func Configure(ctx context.Context, opts ...Option) error {
 		return fmt.Errorf("memlimit: %w", err)
 	}
 
-	// Set default ReservePercent value and ignore invalid values.
-	// If MaxReservePercent is less than 0, use default values.
-	switch {
-	case cfg.reserve < 0:
-		if hard >= 5*shared.GiByte {
-			cfg.reserve = 5
-		} else {
-			cfg.reserve = 10
-		}
-	case cfg.reserve >= 100:
-		cfg.logger.LogAttrs(ctx, slog.LevelError, "Invalid reserve percentage value",
-			slog.Uint64("memory.reserve.percent", uint64(cfg.reserve)),
-		)
-
-		if hard >= 5*shared.GiByte {
-			cfg.reserve = 5
-		} else {
-			cfg.reserve = 10
-		}
-	}
-	reserve := int64(math.Ceil(float64(hard) * (float64(cfg.reserve) / 100)))
 	if hard <= 0 && soft <= 0 {
 		cfg.logger.LogAttrs(ctx, slog.LevelInfo, "Memory limits not specified")
 		return nil
 	}
 
+	// Calculate reserve memory only if hard limit is defined.
+	var reserve int64
+	if hard > 0 {
+		reserve = cfg.reserveFunc(hard)
+		if reserve < 0 {
+			err = fmt.Errorf("memlimit: reserve bytes count is negative:%d", reserve)
+		}
+
+		if reserve >= hard {
+			err = fmt.Errorf("memlimit: reserve bytes larger than hard limit:%d", reserve)
+		}
+
+		if err != nil {
+			cfg.logger.LogAttrs(ctx, slog.LevelError, "ReserveFunc returned invalid value",
+				slog.Int64("memlimit.hard", hard),
+				slog.Int64("memlimit.soft", soft),
+				slog.Int64("memlimit.reserved", reserve),
+				slog.Any("err", err),
+			)
+			return err
+		}
+	}
+
 	cfg.logger.LogAttrs(ctx, slog.LevelInfo, "Successfully obtained memory limits",
 		slog.Int64("memlimit.hard", hard),
 		slog.Int64("memlimit.soft", soft),
-		slog.Int64("memlimit.reserve.bytes", reserve),
-		slog.Uint64("memlimit.reserve.percent", uint64(cfg.reserve)),
+		slog.Int64("memlimit.reserved", reserve),
 	)
 
 	switch {
@@ -207,13 +211,16 @@ func Configure(ctx context.Context, opts ...Option) error {
 	// Set GOMEMLIMIT.
 	if limit > 0 {
 		if snapshot != limit {
-			cfg.logger.LogAttrs(ctx, slog.LevelInfo,
-				"Setting GOMEMLIMIT", slog.String("GOMEMLIMIT", strconv.FormatInt(limit, 10)))
+			cfg.logger.LogAttrs(ctx, slog.LevelInfo, "Setting GOMEMLIMIT",
+				slog.String("GOMEMLIMIT", strconv.FormatInt(limit, 10)))
 			debug.SetMemoryLimit(limit)
+		} else {
+			cfg.logger.LogAttrs(ctx, slog.LevelInfo, "GOMEMLIMIT is already set",
+				slog.String("GOMEMLIMIT", env))
 		}
-		return nil
+	} else {
+		cfg.logger.LogAttrs(ctx, slog.LevelInfo, "Memory limits are not defined")
 	}
 
-	cfg.logger.LogAttrs(ctx, slog.LevelInfo, "Memory limits are not defined")
 	return nil
 }

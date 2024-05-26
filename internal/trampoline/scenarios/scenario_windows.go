@@ -63,10 +63,59 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Windows/JobMemory=250M",
-			Verify: VerifyFunc(3, 0),
+			Verify: VerifyFunc(0, 225*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
-				CPU: 2.9,
+				M1:  250 * shared.MiByte,
+			},
+		},
+		{
+			Name:   "Windows/JobMemory=5G",
+			Verify: VerifyFunc(0, 5*shared.GiByte-100*shared.MiByte),
+			Opts: trampoline.Options{
+				Env: []string{"GOAUTOTUNE=debug"},
+				M1:  5 * shared.GiByte,
+			},
+		},
+		{
+			Name:   "Windows/ProcessMemory=250M",
+			Verify: VerifyFunc(0, 225*shared.MiByte),
+			Opts: trampoline.Options{
+				Env: []string{"GOAUTOTUNE=debug"},
+				M1:  250 * shared.MiByte,
+			},
+		},
+		{
+			Name:   "Windows/ProcessMemory=5G",
+			Verify: VerifyFunc(0, 5*shared.GiByte-100*shared.MiByte),
+			Opts: trampoline.Options{
+				Env: []string{"GOAUTOTUNE=debug"},
+				M1:  5 * shared.GiByte,
+			},
+		},
+		{
+			Name:   "Windows/ProcessMemoryLimitSameAsJobMemoryLimit",
+			Verify: VerifyFunc(0, shared.MiByte*225),
+			Opts: trampoline.Options{
+				M1: shared.MiByte * 250,
+				M2: shared.MiByte * 250,
+			},
+		},
+		{
+			Name:   "Windows/ProcessMemoryLimitLessThanJobMemoryLimit",
+			Verify: VerifyFunc(0, shared.MiByte*225),
+			Opts: trampoline.Options{
+				M1: shared.MiByte * 250,
+				M2: shared.MiByte * 300,
+			},
+		},
+		// This is certainly a misconfiguration and unlikely to occur, but still test it.
+		{
+			Name:   "Windows/ProcessMemoryLimitGreaterThanJobMemoryLimit",
+			Verify: VerifyFunc(0, shared.MiByte*225),
+			Opts: trampoline.Options{
+				M1: shared.MiByte * 300,
+				M2: shared.MiByte * 250,
 			},
 		},
 		{

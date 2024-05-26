@@ -13,14 +13,59 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/tprasadtp/go-autotune/internal/trampoline"
-
 	"github.com/tprasadtp/go-autotune/internal/shared"
+	"github.com/tprasadtp/go-autotune/internal/trampoline"
 	"github.com/tprasadtp/go-autotune/memlimit"
 )
 
 func reset() {
 	debug.SetMemoryLimit(math.MaxInt64)
+}
+
+func TestDefaultReserveFunc(t *testing.T) {
+	tt := []struct {
+		name   string
+		input  int64
+		expect int64
+	}{
+		{
+			name:  "zero",
+			input: 0,
+		},
+		{
+			name:  "negative",
+			input: -1,
+		},
+		{
+			name:   "250MiB",
+			input:  250 * shared.MiByte,
+			expect: 25 * shared.MiByte,
+		},
+		{
+			name:   "500MiB",
+			input:  500 * shared.MiByte,
+			expect: 50 * shared.MiByte,
+		},
+		{
+			name:   "1GiB",
+			input:  1024 * shared.MiByte,
+			expect: 100 * shared.MiByte,
+		},
+		{
+			name:   "5GiB",
+			input:  5 * shared.GiByte,
+			expect: 100 * shared.MiByte,
+		},
+	}
+	fn := memlimit.DefaultReserveFunc()
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			v := fn(tc.input)
+			if v != tc.expect {
+				t.Errorf("expected=%d, got=%d", tc.expect, v)
+			}
+		})
+	}
 }
 
 func TestConfigure(t *testing.T) {
@@ -133,8 +178,8 @@ func TestConfigure(t *testing.T) {
 			},
 		},
 		{
-			name:   "WithReservePercent/Default/HardLimit>=5GiB",
-			expect: 4.75 * shared.GiByte,
+			name:   "WithReserveFunc/Default/HardLimit>=1GiB",
+			expect: 5*shared.GiByte - 100*shared.MiByte,
 			ok:     true,
 			opts: []memlimit.Option{
 				memlimit.WithMemoryQuotaDetector(
@@ -147,25 +192,30 @@ func TestConfigure(t *testing.T) {
 			},
 		},
 		{
-			name:   "WithReservePercent/Default/HardLimit<5GiB",
-			expect: 2.25 * shared.GiByte,
+			name:   "WithReserveFunc/Default/HardLimit<1GiB",
+			expect: 500*shared.MiByte - memlimit.DefaultReserveFunc()(500*shared.MiByte),
 			ok:     true,
 			opts: []memlimit.Option{
 				memlimit.WithMemoryQuotaDetector(
 					memlimit.MemoryQuotaDetectorFunc(
 						func(_ context.Context) (int64, int64, error) {
-							return 2.5 * shared.GiByte, 0, nil
+							return 500 * shared.MiByte, 0, nil
 						},
 					),
 				),
 			},
 		},
 		{
-			name:   "WithReservePercent/50",
+			name:   "WithReserveFunc/ConstantPercent/50",
 			expect: 2.5 * shared.GiByte,
 			ok:     true,
 			opts: []memlimit.Option{
-				memlimit.WithReservePercent(50),
+				memlimit.WithReserveFunc(func(i int64) int64 {
+					if i <= 0 {
+						return 0
+					}
+					return int64(math.Floor(float64(i) * 0.5))
+				}),
 				memlimit.WithMemoryQuotaDetector(
 					memlimit.MemoryQuotaDetectorFunc(
 						func(_ context.Context) (int64, int64, error) {
@@ -176,11 +226,13 @@ func TestConfigure(t *testing.T) {
 			},
 		},
 		{
-			name:   "WithReservePercent/0",
+			name:   "WithReserveFunc/NoReserve",
 			expect: 5 * shared.GiByte,
 			ok:     true,
 			opts: []memlimit.Option{
-				memlimit.WithReservePercent(0),
+				memlimit.WithReserveFunc(func(_ int64) int64 {
+					return 0
+				}),
 				memlimit.WithMemoryQuotaDetector(
 					memlimit.MemoryQuotaDetectorFunc(
 						func(_ context.Context) (int64, int64, error) {
@@ -191,11 +243,11 @@ func TestConfigure(t *testing.T) {
 			},
 		},
 		{
-			name:   "WithReservePercent/Invalid/HardLimit>=5Gi",
-			expect: 4.75 * shared.GiByte,
-			ok:     true,
+			name: "WithReserveFunc/GreaterThanLimit",
 			opts: []memlimit.Option{
-				memlimit.WithReservePercent(250),
+				memlimit.WithReserveFunc(func(i int64) int64 {
+					return i + 1
+				}),
 				memlimit.WithMemoryQuotaDetector(
 					memlimit.MemoryQuotaDetectorFunc(
 						func(_ context.Context) (int64, int64, error) {
@@ -206,11 +258,26 @@ func TestConfigure(t *testing.T) {
 			},
 		},
 		{
-			name:   "WithReservePercent/Invalid/HardLimit<5Gi",
-			expect: 2.25 * shared.GiByte,
-			ok:     true,
+			name: "WithReserveFunc/Invalid/SameAsLimit",
 			opts: []memlimit.Option{
-				memlimit.WithReservePercent(250),
+				memlimit.WithReserveFunc(func(i int64) int64 {
+					return i
+				}),
+				memlimit.WithMemoryQuotaDetector(
+					memlimit.MemoryQuotaDetectorFunc(
+						func(_ context.Context) (int64, int64, error) {
+							return shared.GiByte * 5, 0, nil
+						},
+					),
+				),
+			},
+		},
+		{
+			name: "WithReserveFunc/Invalid/Negative",
+			opts: []memlimit.Option{
+				memlimit.WithReserveFunc(func(_ int64) int64 {
+					return -1
+				}),
 				memlimit.WithMemoryQuotaDetector(
 					memlimit.MemoryQuotaDetectorFunc(
 						func(_ context.Context) (int64, int64, error) {
@@ -236,22 +303,22 @@ func TestConfigure(t *testing.T) {
 		},
 		// With Limits
 		{
-			name:   "HardLimitOnly/LessThan5GiB",
-			expect: 2.25 * shared.GiByte,
+			name:   "HardLimitOnly/LessThan1GiB",
+			expect: 250*shared.MiByte - memlimit.DefaultReserveFunc()(250*shared.MiByte),
 			ok:     true,
 			opts: []memlimit.Option{
 				memlimit.WithMemoryQuotaDetector(
 					memlimit.MemoryQuotaDetectorFunc(
 						func(_ context.Context) (int64, int64, error) {
-							return 2.5 * shared.GiByte, 0, nil
+							return 250 * shared.MiByte, 0, nil
 						},
 					),
 				),
 			},
 		},
 		{
-			name:   "HardLimitOnly/5GiB",
-			expect: 4.75 * shared.GiByte,
+			name:   "HardLimitOnly/GreaterThan1GiB",
+			expect: 5*shared.GiByte - 100*shared.MiByte,
 			ok:     true,
 			opts: []memlimit.Option{
 				memlimit.WithMemoryQuotaDetector(
@@ -279,13 +346,13 @@ func TestConfigure(t *testing.T) {
 		},
 		{
 			name:   "HardLimit=SoftLimit",
-			expect: 2.25 * shared.GiByte,
+			expect: 5*shared.GiByte - 100*shared.MiByte,
 			ok:     true,
 			opts: []memlimit.Option{
 				memlimit.WithMemoryQuotaDetector(
 					memlimit.MemoryQuotaDetectorFunc(
 						func(_ context.Context) (int64, int64, error) {
-							return 2.5 * shared.GiByte, 2.5 * shared.GiByte, nil
+							return 5 * shared.GiByte, 5 * shared.GiByte, nil
 						},
 					),
 				),
@@ -307,7 +374,7 @@ func TestConfigure(t *testing.T) {
 		},
 		{
 			name:   "HardLimit<SoftLimit",
-			expect: 2.25 * shared.GiByte,
+			expect: 2.5*shared.GiByte - 100*shared.MiByte,
 			ok:     true,
 			opts: []memlimit.Option{
 				memlimit.WithMemoryQuotaDetector(

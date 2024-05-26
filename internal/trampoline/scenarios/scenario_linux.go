@@ -71,10 +71,26 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/MemoryMax=5G",
-			Verify: VerifyFunc(0, 4.75*shared.GiByte),
+			Verify: VerifyFunc(0, 5*shared.GiByte-100*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				M1:  5 * shared.GiByte,
+			},
+		},
+		{
+			Name:   "Linux/MemoryHigh=250M",
+			Verify: VerifyFunc(0, 250*shared.MiByte),
+			Opts: trampoline.Options{
+				Env: []string{"GOAUTOTUNE=debug"},
+				M2:  250 * shared.MiByte,
+			},
+		},
+		{
+			Name:   "Linux/MemoryHigh=5G",
+			Verify: VerifyFunc(0, 5*shared.GiByte),
+			Opts: trampoline.Options{
+				Env: []string{"GOAUTOTUNE=debug"},
+				M2:  5 * shared.GiByte,
 			},
 		},
 		{
@@ -95,7 +111,7 @@ func PlatformSpecific() []trampoline.Scenario {
 				M2:  250 * shared.MiByte,
 			},
 		},
-		// This is probably invalid configuration. MemoryHigh should take precedence here.
+		// This is probably an invalid configuration. MemoryHigh should take precedence here.
 		{
 			Name:   "Linux/MemoryMax=250M/MemoryHigh=300M",
 			Verify: VerifyFunc(0, 225*shared.MiByte),

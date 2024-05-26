@@ -102,7 +102,6 @@ func pipeStream(ctx context.Context, tb testing.TB, wg *sync.WaitGroup, h window
 				_, _ = w.Write(buf)
 			}
 			// Avoid CPU bounds, as anonymous pipes do not support overlapped i/o.
-			//nolint:forbidigo //ignore
 			time.Sleep(time.Millisecond * 10)
 		}
 	}

@@ -240,6 +240,8 @@ linters-settings:
         list-mode: lax # allow unless explicitly denied
         files:
           - $all
+        allow:
+          - math/rand/v2
         deny:
           - pkg: math/rand
             desc: >-

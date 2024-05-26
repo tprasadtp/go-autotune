@@ -33,8 +33,8 @@
 // when it is exceeded. For this reason, to let garbage collector free up memory early before
 // OOM killer is involved, a small percentage of hard memory limit is set aside as reserved.
 // This memory is fully accessible to the process and the runtime, but acts as a hint to the
-// garbage collector. By default, 10% is set as reserved, hard memory limit is less than 5Gi
-// and 5% otherwise.
+// garbage collector. By default, 10% is set as reserved with maximum reserve value of 100MiB.
+// See [DefaultReserveFunc] for default reserve value calculator.
 //
 // For Linux, cgroup v2 interface files are used to get memory limits.
 // cgroup memory limit [memory.max] is hard memory limit and [memory.high] is
@@ -51,23 +51,23 @@
 // For example, when application is running as a systemd unit with,
 //
 //   - [MemoryMax]=250M and [MemoryHigh]=250M GOMEMLIMIT is set to 235929600 bytes.
-//     (250M - 250*(10%)) = 225MiB = 235929600. [MemoryHigh] is ignored as it is less than
-//     [MemoryMax] - [MemoryMax]*[WithMaxReservePercent].
-//   - [MemoryMax]=10G, GOMEMLIMIT is set to (10 - 10*(5%)) = 9.5GiB = 10200547328.
+//     (250MiB - 250MiB*(10%)) = 225MiB = 235929600. [MemoryHigh] is ignored as it is less than
+//     [MemoryMax] - reserve.
 //   - [MemoryHigh]=250M but no [MemoryMax] specified, GOMEMLIMIT is set to 250MiB = 262144000 bytes.
-//   - [MemoryMax]=250M but no [MemoryHigh] specified, GOMEMLIMIT is set to (250 - 250*(10%)) = 225MiB = 235929600.
+//   - [MemoryMax]=250M but no [MemoryHigh] specified, GOMEMLIMIT is set to (250MiB - 250MiB*(10%)) = 225MiB = 235929600.
+//   - [MemoryMax]=10G, but no [MemoryHigh] specified GOMEMLIMIT is set to (10GiB - 100MiB) = 10632560640.
 //
 // For Windows, [QueryInformationJobObject] API is used to get memory limits.
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)
-// and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is always preferred
+// and per job memory limits(JobMemoryLimit). ProcessMemoryLimit is preferred
 // over JobMemoryLimit. Both are considered hard limits.
 //
 // For a windows container running with,
 //
 //   - Memory limit 250M, GOMEMLIMIT is set to 235929600 bytes.
-//     (250M - 250*(10/100)) = 225MiB = 235929600.
+//     (250MiB - 250MiB*(10/100)) = 225MiB = 235929600.
 //   - Memory limit 10G, GOMEMLIMIT is set to 10200547328 bytes.
-//     (10 - 10*(5%)) = 9.5GiB = 10200547328.
+//     (10GiB - 100MiB) = 10632560640.
 //
 // # Use in library packages
 //
@@ -86,12 +86,6 @@
 //   - [go.uber.org/automaxprocs]
 //   - [github.com/KimMachineGun/automemlimit]
 //
-// # Init function overhead
-//
-// Importing this package typically adds small 0.1.8 to 0.25ms init overhead.
-//
-//	init github.com/tprasadtp/go-autotune @1.4 ms, 0.28 ms clock, 37744 bytes, 83 allocs
-//
 // # Disable at Runtime
 //
 // To disable automatic configuration at runtime (for compiled binaries),
@@ -104,7 +98,7 @@
 // [cpu.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#core-interface-files
 // [MemoryMax]: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#MemoryMax=bytes
 // [MemoryHigh]: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#MemoryHigh=bytes
-// [WithMaxReservePercent]: https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit.WithMaxReservePercent
+// [DefaultReserveFunc]: https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit.DefaultReserveFunc
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information
 package autotune

@@ -6,8 +6,10 @@ package memlimit
 import (
 	"context"
 	"log/slog"
+	"math"
 
 	"github.com/tprasadtp/go-autotune/internal/quota"
+	"github.com/tprasadtp/go-autotune/internal/shared"
 )
 
 var (
@@ -58,20 +60,24 @@ func WithLogger(logger *slog.Logger) Option {
 	return nil
 }
 
-// WithReservePercent configures percentage of hard memory
-// limit to set as reserved before setting GOMEMLIMIT. This reserved
-// memory is fully accessible to the process and runtime, but acts as
-// a hint to garbage collector and may help avoid OOM killer being
-// invoked when dealing with transient memory spikes.
+// WithReserveFunc calculates amount  of hard memory limit to set as reserved
+// before setting GOMEMLIMIT. This reserved memory is fully accessible to the
+// process and runtime, but acts as a hint to garbage collector and may help
+// avoid OOM killer being invoked when dealing with transient memory spikes.
 //
-// If not specified, Default is 10% if hard memory limit less than 5GiB
-// otherwise 5% is used.
-func WithReservePercent(percent uint8) Option {
-	return &optionFunc{
-		fn: func(c *config) {
-			c.reserve = int64(percent)
-		},
+// By default 10% of hard memory limit is set aside is reserved with a maximum
+// of 100 MiB. If your application makes extensive use of in memory cache,
+// or is memory intensive, tweaking this may be necessary to avoid OOMs when
+// dealing with transient memory spikes. This has no effect on soft memory limits.
+func WithReserveFunc(fn func(limit int64) (reserve int64)) Option {
+	if fn != nil {
+		return &optionFunc{
+			fn: func(c *config) {
+				c.reserveFunc = fn
+			},
+		}
 	}
+	return nil
 }
 
 // WithMemoryQuotaDetector can be used to replace default memory quota detection algorithm.
@@ -94,4 +100,18 @@ func WithMemoryQuotaDetector(d MemoryQuotaDetector) Option {
 // re-implementing it.
 func DefaultMemoryQuotaDetector() MemoryQuotaDetector {
 	return &quota.Detector{}
+}
+
+// DefaultReserveFunc returns default [WithReserveFunc].
+func DefaultReserveFunc() func(limit int64) (reserve int64) {
+	return func(i int64) int64 {
+		if i <= 0 {
+			return 0
+		}
+
+		if v := math.Floor(float64(i) * 0.1); v <= shared.MiByte*100 {
+			return int64(v)
+		}
+		return shared.MiByte * 100
+	}
 }
