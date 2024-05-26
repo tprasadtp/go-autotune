@@ -18,9 +18,9 @@
 //   - If CPU quota is less than 1, GOMAXPROCS is set to 1.
 //
 // Workload with fractional CPU quota (for example, 2.1) may encounter some CPU
-// throttling. If you're using [Vertical Pod autoscaling] and do not wish to encounter
-// CPU throttling, it is recommended that you use [CPU Management with static policy],
-// to ensure CPU recommendation is an integer.
+// throttling. For workloads sensitive to CPU throttling, when using [Vertical Pod autoscaling]
+// it is recommended to enable [cpu-integer-post-processor-enabled], to ensure CPU recommendation
+// is an integer.
 //
 // # GOMEMLIMIT
 //
@@ -91,8 +91,6 @@
 // To disable automatic configuration at runtime (for compiled binaries),
 // Set "GOAUTOTUNE" environment variable to "false" or "0".
 //
-// [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
-// [Vertical Pod autoscaling]: https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler
 // [memory.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
 // [memory.high]: https://docs.kernel.org/admin-guide/cgroup-v2.html#memory-interface-files
 // [cpu.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#core-interface-files
@@ -101,6 +99,8 @@
 // [DefaultReserveFunc]: https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit.DefaultReserveFunc
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information
+// [Vertical Pod autoscaling]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
+// [cpu-integer-post-processor-enabled]: https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/FAQ.md#what-are-the-parameters-to-vpa-recommender
 package autotune
 
 import (
