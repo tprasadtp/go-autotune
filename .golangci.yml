@@ -251,13 +251,23 @@ linters-settings:
     # Forbid the following identifiers (list of regexp).
     # Default: ["^(fmt\\.Print(|f|ln)|print|println)$"]
     forbid:
-      # Builtin function:
-      - p: ^print.*$
+      # Builtin print function:
+      - p: '^print.*$'
         msg: "Do not commit print builtin statements."
 
       # fmt.Prinf|Println
-      - p: "fmt.Print(f|ln)?(.*)"
+      - p: '^fmt\.Print.*$'
         msg: "Do not commit print statements."
+        pkg: "^fmt$"
+
+      # Use secure DLL loading on Windows.
+      - p: '^syscall\.(Must)?LoadDLL.*$'
+        msg: "Use NewLazySystemDLL in golang.org/x/sys/windows for a secure way to load system DLLs."
+        pkg: "^syscall$"
+
+      - p: '^windows\.(MustLoadDLL|LoadDLL|NewLazyDLL).*$'
+        msg: "Use NewLazySystemDLL for a secure way to load system DLLs."
+        pkg: "^golang.org/x/sys/windows$"
 
     # Exclude godoc examples from forbidigo checks.
     # Default: true
