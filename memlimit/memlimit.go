@@ -47,8 +47,6 @@ func Current() int64 {
 // cgroup memory limit [memory.max] is hard memory limit and [memory.high] is
 // soft memory limit. If using soft memory limits, an external process SHOULD monitor
 // pressure stall information of the workload/cgroup AND alleviate the reclaim pressure.
-// If your workload manager defines [memory.high], but you wish to only use [memory.max]
-// use [WithIgnoreSoftLimit].
 //
 //   - If both [memory.max] and [memory.high] are specified, and ([memory.max] - reserved)
 //     is less than [memory.high], GOMEMLIMIT is set to ([memory.max] - reserved).
