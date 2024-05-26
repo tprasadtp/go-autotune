@@ -27,6 +27,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+//nolint:gochecknoglobals
 var (
 	kernel32          = windows.NewLazySystemDLL("kernel32.dll")
 	procPeekNamedPipe = kernel32.NewProc("PeekNamedPipe")
