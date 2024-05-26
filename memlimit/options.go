@@ -21,7 +21,7 @@ type MemoryQuotaDetector interface {
 	DetectMemoryQuota(ctx context.Context) (max, high int64, err error)
 }
 
-// MemoryQuotaDetectorFunc s an adapter to allow the use of ordinary functions as
+// MemoryQuotaDetectorFunc is an adapter to allow the use of ordinary functions as
 // [MemoryQuotaDetector]. If f is a function with the appropriate signature,
 // MemoryQuotaDetectorFunc(f) is a [MemoryQuotaDetector] that calls f.
 type MemoryQuotaDetectorFunc func(context.Context) (max, high int64, err error)

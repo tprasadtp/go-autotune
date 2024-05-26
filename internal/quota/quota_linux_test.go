@@ -198,54 +198,54 @@ func TestDetectMemoryQuota(t *testing.T) {
 func TestTrampolineLinux(t *testing.T) {
 	tt := []trampoline.Scenario{
 		{
-			Name:   "Linux/NoQuota",
+			Name:   "NoQuota",
 			Opts:   trampoline.Options{},
 			Verify: VerifyQuotaFunc(0, 0, 0),
 		},
 		{
-			Name: "Linux/CPUFraction",
+			Name: "CPUFraction",
 			Opts: trampoline.Options{
 				CPU: 0.5,
 			},
 			Verify: VerifyQuotaFunc(0.5, 0, 0),
 		},
 		{
-			Name: "Linux/CPU=1",
+			Name: "CPU=1",
 			Opts: trampoline.Options{
 				CPU: 1,
 			},
 			Verify: VerifyQuotaFunc(1, 0, 0),
 		},
 		{
-			Name: "Linux/CPU=1.5",
+			Name: "CPU=1.5",
 			Opts: trampoline.Options{
 				CPU: 1.5,
 			},
 			Verify: VerifyQuotaFunc(1.5, 0, 0),
 		},
 		{
-			Name: "Linux/CPU=2.5",
+			Name: "CPU=2.5",
 			Opts: trampoline.Options{
 				CPU: 2.5,
 			},
 			Verify: VerifyQuotaFunc(2.5, 0, 0),
 		},
 		{
-			Name: "Linux/MemoryMaxOnly",
+			Name: "MemoryMaxOnly",
 			Opts: trampoline.Options{
 				M1: shared.MiByte * 250,
 			},
 			Verify: VerifyQuotaFunc(0, shared.MiByte*250, 0),
 		},
 		{
-			Name: "Linux/MemoryHighOnly",
+			Name: "MemoryHighOnly",
 			Opts: trampoline.Options{
 				M2: shared.MiByte * 300,
 			},
 			Verify: VerifyQuotaFunc(0, 0, shared.MiByte*300),
 		},
 		{
-			Name: "Linux/MemoryMaxAndMemoryHigh",
+			Name: "MemoryMaxAndMemoryHigh",
 			Opts: trampoline.Options{
 				M1: shared.MiByte * 300,
 				M2: shared.MiByte * 250,

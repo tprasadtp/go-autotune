@@ -25,7 +25,7 @@ import (
 // See https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/
 // for kubernetes in place resource resize documentation.
 //
-// If GOAUTOTUNE env variable set to false value, then GOMAXPROCS and GOMEMLIMIT
+// If GOAUTOTUNE environment variable set to "false" or "0", then GOMAXPROCS and GOMEMLIMIT
 // are not modified.
 func Example_inPlaceResourceResize() {
 	// WaitGroup to wait on background goroutines.

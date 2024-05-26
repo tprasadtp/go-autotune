@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
+// Package env provides utilities for processing environment variables.
 package env
 
 import (

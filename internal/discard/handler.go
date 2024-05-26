@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
+// Package discard implements a logging handler which discards all logs.
 package discard
 
 import (

@@ -133,8 +133,10 @@ func trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configu
 	args := []string{
 		userOrSystem,
 		"--no-ask-password",
-		"--wait", // wait till trampoline exits
-		"--pipe", // do not log to journald, instead stream to pipe
+		"--wait",     // wait till trampoline exits
+		"--same-dir", // run in the same directory as the package being tested.
+		"--collect",  // unload the transient unit after it completed, even if it failed.
+		"--pipe",     // do not log to journald, instead stream to pipe
 	}
 
 	// Check Env variables do not include GO_TEST_EXEC_TRAMPOLINE.
@@ -152,6 +154,7 @@ func trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configu
 		}
 	}
 
+	// Breaker.
 	envv := os.Environ()
 	for _, item := range envv {
 		if strings.Contains(strings.ToUpper(item), "GO_TEST_EXEC_TRAMPOLINE") {
@@ -175,18 +178,12 @@ func trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configu
 
 	// M1 corresponds to memory.max
 	if opts.M1 > 0 {
-		args = append(
-			args,
-			fmt.Sprintf("--property=MemoryMax=%d", opts.M1),
-		)
+		args = append(args, fmt.Sprintf("--property=MemoryMax=%d", opts.M1))
 	}
 
 	// M2 corresponds to memory.high
 	if opts.M2 > 0 {
-		args = append(
-			args,
-			fmt.Sprintf("--property=MemoryHigh=%d", opts.M2),
-		)
+		args = append(args, fmt.Sprintf("--property=MemoryHigh=%d", opts.M2))
 	}
 
 	// Set timeouts.
@@ -221,7 +218,7 @@ func trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configu
 	cmd.Stdin = nil
 	cmd.Stdout = NewWriter(tb, "trampoline")
 	cmd.Stderr = NewWriter(tb, "trampoline")
-	tb.Logf("Running via : systemd-run %v", cmd.Args)
+	tb.Logf("Running via : %v", cmd.Args)
 	err = cmd.Run()
 	if err != nil {
 		tb.Fatalf("Failed to re-exec test: %s", err)

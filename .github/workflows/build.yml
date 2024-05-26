@@ -47,8 +47,6 @@ jobs:
 
       - name: Compile Example Go Binary
         run: go build -o ./example/go-autotune.exe ./example/
-        env:
-          GODEBUG: inittrace=1
 
       - name: Init trace Example Go Binary
         run: example/go-autotune.exe

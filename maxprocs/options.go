@@ -20,7 +20,7 @@ type CPUQuotaDetector interface {
 	DetectCPUQuota(ctx context.Context) (float64, error)
 }
 
-// CPUQuotaDetectorFunc s an adapter to allow the use of ordinary functions as
+// CPUQuotaDetectorFunc is an adapter to allow the use of ordinary functions as
 // [CPUQuotaDetector]. If f is a function with the appropriate signature,
 // CPUQuotaDetectorFunc(f) is a [CPUQuotaDetector] that calls f.
 type CPUQuotaDetectorFunc func(context.Context) (float64, error)

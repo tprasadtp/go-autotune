@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
+// Package shared provides utilities shared across multiple internal packages.
 package shared
 
 import (
