@@ -6,6 +6,9 @@
 package trampoline
 
 import (
+	"math"
+	"runtime"
+	"runtime/debug"
 	"testing"
 	"time"
 )
@@ -41,11 +44,37 @@ type Scenario struct {
 	Verify func(tb testing.TB)
 }
 
-// Trampoline re-runs the current test function via systemd run on linux and
+// VerifyFunc returns a function which can be used by Trampoline.
+func VerifyFunc(cpus int, memory int64) func(tb testing.TB) {
+	if cpus <= 0 {
+		cpus = runtime.NumCPU()
+	}
+
+	if memory <= 0 {
+		memory = math.MaxInt64
+	}
+
+	return func(tb testing.TB) {
+		tb.Helper()
+		v := runtime.GOMAXPROCS(-1)
+		if v != cpus {
+			tb.Errorf("GOMAXPROCS expected=%d, got=%d", cpus, v)
+		}
+
+		mv := debug.SetMemoryLimit(-1)
+		if memory != mv {
+			tb.Errorf("GOMEMLIMIT expected=%d, got=%d", memory, mv)
+		}
+	}
+}
+
+// Trampoline re-runs the current test function via [systemd-run] on linux and
 // [golang.org/x/sys/windows.CreateProcess] with appropriate resource limits.
 // verify is the test function which should be checked. configure is a hook
 // to run any setup tasks before running verify. Though configure can be nil
 // verify must be a non nil test function.
+//
+// [systemd-run]: https://www.freedesktop.org/software/systemd/man/latest/systemd-run.html
 func Trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configure func()) {
 	trampoline(tb, opts, verify, configure)
 }

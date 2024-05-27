@@ -10,12 +10,12 @@ import (
 	"github.com/tprasadtp/go-autotune/internal/trampoline"
 )
 
-// linux scenarios.
+// Linux scenarios.
 func PlatformSpecific() []trampoline.Scenario {
 	return []trampoline.Scenario{
 		{
 			Name:   "Env/GOMAXPROCS=OverrideCPULimits",
-			Verify: VerifyFunc(2, 0),
+			Verify: trampoline.VerifyFunc(2, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOMAXPROCS=2", "GOAUTOTUNE=debug"},
 				CPU: 0.5,
@@ -23,7 +23,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/CPU=0.5",
-			Verify: VerifyFunc(1, 0),
+			Verify: trampoline.VerifyFunc(1, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				CPU: 0.5,
@@ -31,7 +31,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/CPU=1",
-			Verify: VerifyFunc(1, 0),
+			Verify: trampoline.VerifyFunc(1, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				CPU: 1,
@@ -39,7 +39,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/CPU=1.5",
-			Verify: VerifyFunc(2, 0),
+			Verify: trampoline.VerifyFunc(2, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				CPU: 1.5,
@@ -47,7 +47,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/CPU=2.25",
-			Verify: VerifyFunc(3, 0),
+			Verify: trampoline.VerifyFunc(3, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				CPU: 2.25,
@@ -55,7 +55,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/CPU=2.9",
-			Verify: VerifyFunc(3, 0),
+			Verify: trampoline.VerifyFunc(3, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				CPU: 2.9,
@@ -63,7 +63,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/MemoryMax=250M",
-			Verify: VerifyFunc(0, 225*shared.MiByte),
+			Verify: trampoline.VerifyFunc(0, 225*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				M1:  250 * shared.MiByte,
@@ -71,7 +71,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/MemoryMax=5G",
-			Verify: VerifyFunc(0, 5*shared.GiByte-100*shared.MiByte),
+			Verify: trampoline.VerifyFunc(0, 5*shared.GiByte-100*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				M1:  5 * shared.GiByte,
@@ -79,7 +79,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/MemoryHigh=250M",
-			Verify: VerifyFunc(0, 250*shared.MiByte),
+			Verify: trampoline.VerifyFunc(0, 250*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				M2:  250 * shared.MiByte,
@@ -87,7 +87,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/MemoryHigh=5G",
-			Verify: VerifyFunc(0, 5*shared.GiByte),
+			Verify: trampoline.VerifyFunc(0, 5*shared.GiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				M2:  5 * shared.GiByte,
@@ -95,7 +95,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/MemoryMax=250M/MemoryHigh=250M",
-			Verify: VerifyFunc(0, 225*shared.MiByte),
+			Verify: trampoline.VerifyFunc(0, 225*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				M1:  250 * shared.MiByte,
@@ -104,7 +104,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "Linux/MemoryMax=300M/MemoryHigh=250M",
-			Verify: VerifyFunc(0, 250*shared.MiByte),
+			Verify: trampoline.VerifyFunc(0, 250*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				M1:  300 * shared.MiByte,
@@ -114,7 +114,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		// This is probably an invalid configuration. MemoryHigh should take precedence here.
 		{
 			Name:   "Linux/MemoryMax=250M/MemoryHigh=300M",
-			Verify: VerifyFunc(0, 225*shared.MiByte),
+			Verify: trampoline.VerifyFunc(0, 225*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 				M1:  250 * shared.MiByte,
@@ -123,7 +123,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "DisableViaEnv/GOAUTOTUNE=off",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=off"},
 				CPU: 1.5,
@@ -133,7 +133,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "DisableViaEnv/GOAUTOTUNE=0",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=0"},
 				CPU: 1.5,
@@ -143,7 +143,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "DisableViaEnv/GOAUTOTUNE=false",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=false"},
 				CPU: 1.5,
@@ -153,7 +153,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "DisableViaEnv/GO_AUTOTUNE=0",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GO_AUTOTUNE=0"},
 				CPU: 1.5,
@@ -163,7 +163,7 @@ func PlatformSpecific() []trampoline.Scenario {
 		},
 		{
 			Name:   "DisableViaEnv/GO_AUTOTUNE=false",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GO_AUTOTUNE=false"},
 				CPU: 1.5,

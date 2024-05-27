@@ -20,49 +20,49 @@ func Common() []trampoline.Scenario {
 		//---------------------------------------------------
 		{
 			Name:   "NoLimits",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug"},
 			},
 		},
 		{
 			Name:   "Env/GOMAXPROCS=1",
-			Verify: VerifyFunc(1, 0),
+			Verify: trampoline.VerifyFunc(1, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOMAXPROCS=1", "GOAUTOTUNE=debug"},
 			},
 		},
 		{
 			Name:   "Env/GOMAXPROCS=2",
-			Verify: VerifyFunc(2, 0),
+			Verify: trampoline.VerifyFunc(2, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOMAXPROCS=2", "GOAUTOTUNE=debug"},
 			},
 		},
 		{
 			Name:   "Env/GOMAXPROCS=Negative",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOMAXPROCS=-2", "GOAUTOTUNE=debug"},
 			},
 		},
 		{
 			Name:   "Env/GOMAXPROCS=Zero",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOMAXPROCS=0", "GOAUTOTUNE=debug"},
 			},
 		},
 		{
 			Name:   "Env/GOMAXPROCS=Fraction",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOMAXPROCS=0.5", "GOAUTOTUNE=debug"},
 			},
 		},
 		{
 			Name:   "Env/GOMAXPROCS=NotInteger",
-			Verify: VerifyFunc(0, 0),
+			Verify: trampoline.VerifyFunc(0, 0),
 			Opts: trampoline.Options{
 				Env: []string{"GOMAXPROCS=NotInteger", "GOAUTOTUNE=debug"},
 			},
@@ -72,14 +72,14 @@ func Common() []trampoline.Scenario {
 		//---------------------------------------------------
 		{
 			Name:   "Env/GOMEMLIMIT=235929600",
-			Verify: VerifyFunc(0, 225*shared.MiByte),
+			Verify: trampoline.VerifyFunc(0, 225*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug", "GOMEMLIMIT=235929600"},
 			},
 		},
 		{
 			Name:   "Env/GOMEMLIMIT=225MiB",
-			Verify: VerifyFunc(0, 225*shared.MiByte),
+			Verify: trampoline.VerifyFunc(0, 225*shared.MiByte),
 			Opts: trampoline.Options{
 				Env: []string{"GOAUTOTUNE=debug", "GOMEMLIMIT=225MiB"},
 			},
