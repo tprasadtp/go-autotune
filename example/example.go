@@ -29,6 +29,14 @@ import (
 //go:embed favicon.ico
 var favicon []byte
 
+func info(w io.Writer) {
+	fmt.Fprintf(w, "GOOS       : %s\n", runtime.GOOS)
+	fmt.Fprintf(w, "GOARCH     : %s\n", runtime.GOARCH)
+	fmt.Fprintf(w, "GOMAXPROCS : %d\n", runtime.GOMAXPROCS(-1))
+	fmt.Fprintf(w, "NumCPU     : %d\n", runtime.NumCPU())
+	fmt.Fprintf(w, "GOMEMLIMIT : %d\n", debug.SetMemoryLimit(-1))
+}
+
 func main() {
 	var addr string
 	var wg sync.WaitGroup
@@ -41,7 +49,7 @@ func main() {
 	// on that port.
 	if addr == "" {
 		if v := os.Getenv("PORT"); v != "" {
-			_, err := strconv.ParseInt(v, 10, 16)
+			_, err := strconv.ParseUint(v, 10, 16)
 			if err != nil {
 				slog.Error("Invalid PORT",
 					slog.String("PORT", v), slog.Any("err", err))
@@ -118,8 +126,8 @@ func main() {
 			// on cancel, stop the server and return.
 			case <-ctx.Done():
 				slog.Info("Stopping server", "server", srv.Addr)
-				err = srv.Shutdown(ctx)
-				if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				err = srv.Shutdown(context.Background())
+				if err != nil {
 					slog.Error("Failed to shutdown server", slog.Any("err", err))
 				}
 				return
@@ -127,23 +135,19 @@ func main() {
 		}
 	}()
 
-	// Start server.
-	slog.Info("Starting server", slog.String("server", srv.Addr))
-	err := srv.ListenAndServe()
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("Failed to start the server", slog.Any("err", err))
-		wg.Wait()
-		os.Exit(1)
+	// Start server if context is not already cancelled.
+	if ctx.Err() == nil {
+		slog.Info("Starting server", slog.String("server", srv.Addr))
+		err := srv.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("Failed to start the server", slog.Any("err", err))
+			wg.Wait() // allow shutdown to complete.
+			os.Exit(1)
+		}
+	} else {
+		slog.Warn("Not starting server, context already cancelled", slog.String("server", srv.Addr))
 	}
 
 	wg.Wait()
 	slog.Info("Server stopped", slog.String("server", srv.Addr))
-}
-
-func info(w io.Writer) {
-	fmt.Fprintf(w, "GOOS       : %s\n", runtime.GOOS)
-	fmt.Fprintf(w, "GOARCH     : %s\n", runtime.GOARCH)
-	fmt.Fprintf(w, "GOMAXPROCS : %d\n", runtime.GOMAXPROCS(-1))
-	fmt.Fprintf(w, "NumCPU     : %d\n", runtime.NumCPU())
-	fmt.Fprintf(w, "GOMEMLIMIT : %d\n", debug.SetMemoryLimit(-1))
 }
