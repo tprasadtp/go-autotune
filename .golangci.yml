@@ -169,7 +169,7 @@ linters-settings:
             recommendations:
               - golang.org/x/crypto/x509roots/fallback
 
-        # Go 1.20 introduced log/slog use it or github.com/tprasadtp/log wrapper
+        # Go 1.20 introduced log/slog use it or github.com/tprasadtp/log wrapper.
         - github.com/hashicorp/go-hclog:
             recommendations:
               - log/slog
@@ -233,7 +233,7 @@ linters-settings:
     # Default: Only allow $gostd in all files.
     rules:
       # Name of a rule.
-      stdlib-block-math-rand-v1:
+      stdlib-blocked-packages:
         # Used to determine the package matching priority.
         # There are three different modes: `original`, `strict`, and `lax`.
         # Default: "original"

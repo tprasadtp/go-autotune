@@ -42,7 +42,7 @@ var (
 
 // SkipIfCPUControllerNotAvailable skips the test if CPU controller is not available.
 // See https://github.com/systemd/systemd/pull/23887. This does not change test coverage
-// much as unit test can use WithCPUQuotaFunc to emulate responses.
+// much as unit test can use interfaces to emulate responses.
 func SkipIfCPUControllerNotAvailable(tb testing.TB) {
 	// systemctl show user@$(id -u).service --property=DelegateControllers
 	hasCPUControllerOnce.Do(func() {

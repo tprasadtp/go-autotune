@@ -23,7 +23,7 @@ Supports _both_ Windows and Linux.
 
 ## Usage
 
-Simply blank import `github.com/tprasadtp/go-autotune` in your main package.
+Simply `_` import `github.com/tprasadtp/go-autotune` in your main package.
 
 ```go
 package main
@@ -33,7 +33,7 @@ import (
 )
 ```
 
-See [API docs] and [example](./example/) for more info.
+See [API docs] and [example](./example/) for more examples and advanced use cases.
 
 ## Requirements (Linux)
 
@@ -72,6 +72,7 @@ linters-settings:
     blocked:
       modules:
         # <snip other modules>
+        # Use github.com/tprasadtp/go-autotune
         - go.uber.org/automaxprocs:
             reason: >-
               Does not handle fractional CPUs well and does not support Windows.
@@ -79,8 +80,8 @@ linters-settings:
               - github.com/tprasadtp/go-autotune
         - github.com/KimMachineGun/automemlimit:
             reason: >-
-              Does not support cgroups mounted at non standard location.
-              Also does not support memory.high and does not support Windows.
+              Does not support cgroups mounted at non standard location,
+              does not support memory.high and does not support Windows.
             recommendations:
               - github.com/tprasadtp/go-autotune
 linters:

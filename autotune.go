@@ -53,8 +53,10 @@
 //   - [MemoryMax]=250M and [MemoryHigh]=250M GOMEMLIMIT is set to 235929600 bytes.
 //     (250MiB - 250MiB*(10%)) = 225MiB = 235929600. [MemoryHigh] is ignored as it is less than
 //     [MemoryMax] - reserve.
+//   - [MemoryMax]=300M and [MemoryHigh]=250M GOMEMLIMIT is set is set to 250MiB = 262144000 bytes.
+//     [MemoryMax] is ignored as [MemoryHigh] is less than [MemoryMax] - reserve.
+//   - [MemoryMax]=250M but no [MemoryHigh] specified, GOMEMLIMIT is set to (250MiB - 250MiB*(10%)) = 235929600.
 //   - [MemoryHigh]=250M but no [MemoryMax] specified, GOMEMLIMIT is set to 250MiB = 262144000 bytes.
-//   - [MemoryMax]=250M but no [MemoryHigh] specified, GOMEMLIMIT is set to (250MiB - 250MiB*(10%)) = 225MiB = 235929600.
 //   - [MemoryMax]=10G, but no [MemoryHigh] specified GOMEMLIMIT is set to (10GiB - 100MiB) = 10632560640.
 //
 // For Windows, [QueryInformationJobObject] API is used to get memory limits.
@@ -64,9 +66,9 @@
 //
 // For a windows container running with,
 //
-//   - Memory limit 250M, GOMEMLIMIT is set to 235929600 bytes.
+//   - Memory limit 250MiB, GOMEMLIMIT is set to 235929600 bytes.
 //     (250MiB - 250MiB*(10/100)) = 225MiB = 235929600.
-//   - Memory limit 10G, GOMEMLIMIT is set to 10200547328 bytes.
+//   - Memory limit 10GiB, GOMEMLIMIT is set to 10200547328 bytes.
 //     (10GiB - 100MiB) = 10632560640.
 //
 // # Use in library packages
@@ -96,7 +98,7 @@
 // [cpu.max]: https://docs.kernel.org/admin-guide/cgroup-v2.html#core-interface-files
 // [MemoryMax]: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#MemoryMax=bytes
 // [MemoryHigh]: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#MemoryHigh=bytes
-// [DefaultReserveFunc]: https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit.DefaultReserveFunc
+// [DefaultReserveFunc]: https://pkg.go.dev/github.com/tprasadtp/go-autotune/memlimit#DefaultReserveFunc
 // [QueryInformationJobObject]: https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION]: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information
 // [Vertical Pod autoscaling]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
