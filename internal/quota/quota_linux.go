@@ -54,7 +54,7 @@ func (d *Detector) DetectCPUQuota(_ context.Context) (float64, error) {
 	if scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) == 0 || len(fields) > 2 {
-			return 0, fmt.Errorf("quota(cgroup): invalid format cpu.max")
+			return 0, errors.New("quota(cgroup): invalid format cpu.max")
 		}
 
 		// No CPU limits.
@@ -65,7 +65,7 @@ func (d *Detector) DetectCPUQuota(_ context.Context) (float64, error) {
 		// Get Maximum CPU quota
 		max, err := strconv.ParseUint(fields[0], 10, 64)
 		if err != nil || max == 0 {
-			return 0, fmt.Errorf("quota(cgroup): invalid format cpu.max")
+			return 0, errors.New("quota(cgroup): invalid format cpu.max")
 		}
 
 		// Check if period is defined.

@@ -6,7 +6,6 @@ package memlimit_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"math"
 	"runtime/debug"
@@ -171,7 +170,7 @@ func TestConfigure(t *testing.T) {
 				memlimit.WithMemoryQuotaDetector(
 					memlimit.MemoryQuotaDetectorFunc(
 						func(_ context.Context) (int64, int64, error) {
-							return 0, 0, fmt.Errorf("fake: test error")
+							return 0, 0, errors.New("fake: test error")
 						},
 					),
 				),

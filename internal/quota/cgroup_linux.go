@@ -168,7 +168,7 @@ func cgroupMountPointFromFile(mountInfo string) (string, error) {
 			return mountpoint, nil
 		}
 	}
-	return "", fmt.Errorf("unable to find cgroup2 mountpoint")
+	return "", errors.New("unable to find cgroup2 mountpoint")
 }
 
 func memLimitFromFile(path string) (int64, error) {

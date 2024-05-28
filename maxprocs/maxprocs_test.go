@@ -84,7 +84,7 @@ func TestConfigure(t *testing.T) {
 				maxprocs.WithCPUQuotaDetector(
 					maxprocs.CPUQuotaDetectorFunc(
 						func(context.Context) (float64, error) {
-							return 0, fmt.Errorf("test: unknown error")
+							return 0, errors.New("test: unknown error")
 						},
 					),
 				),
