@@ -61,10 +61,12 @@ func WithLogger(logger *slog.Logger) Option {
 // CPU throttling. Replacing this with custom function may result in underutilized
 // or significantly throttled CPU.
 //
-// Unless you are sure of your requirements, do not use this. If fractional CPUs
-// is not desired for kubernetes workloads, prefer using [CPU Management with static policy].
+// When using [Vertical Pod autoscaling], if fractional CPUs is not desired, it is
+// recommended to set  [cpu-integer-post-processor-enabled], to ensure CPU recommendation
+// is an integer.
 //
-// [CPU Management with static policy]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler#using-cpu-management-with-static-policy
+// [Vertical Pod autoscaling]: https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
+// [cpu-integer-post-processor-enabled]: https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/FAQ.md#what-are-the-parameters-to-vpa-recommender
 func WithRoundFunc(fn func(float64) int) Option {
 	if fn != nil {
 		return &optionFunc{
