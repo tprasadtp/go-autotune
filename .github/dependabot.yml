@@ -5,7 +5,8 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - "/"
     labels:
       - "bot/dependabot"
       - "deps/actions"
@@ -25,7 +26,8 @@ updates:
   # For go, because of MVS, only security updates are relevant.
   # Ignore version updates as this package is a library.
   - package-ecosystem: gomod
-    directory: /
+    directories:
+      - "/"
     labels:
       - "bot/dependabot"
       - "deps/go"

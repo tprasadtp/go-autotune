@@ -19,7 +19,7 @@
 //
 // Workload with fractional CPU quota (for example, 2.1) may encounter some CPU
 // throttling. For workloads sensitive to CPU throttling, when using [Vertical Pod autoscaling]
-// it is recommended to enable [cpu-integer-post-processor-enabled], to ensure CPU recommendation
+// it is recommended to set [cpu-integer-post-processor-enabled], to ensure CPU recommendation
 // is an integer.
 //
 // # GOMEMLIMIT
@@ -51,13 +51,13 @@
 // For example, when application is running as a systemd unit with,
 //
 //   - [MemoryMax]=250M and [MemoryHigh]=250M GOMEMLIMIT is set to 235929600 bytes.
-//     (250MiB - 250MiB*(10%)) = 225MiB = 235929600. [MemoryHigh] is ignored as it is less than
+//     (250MiB - 250MiB*(10%)) = 225MiB = 235929600 bytes. [MemoryHigh] is ignored as it is less than
 //     [MemoryMax] - reserve.
 //   - [MemoryMax]=300M and [MemoryHigh]=250M GOMEMLIMIT is set is set to 250MiB = 262144000 bytes.
 //     [MemoryMax] is ignored as [MemoryHigh] is less than [MemoryMax] - reserve.
-//   - [MemoryMax]=250M but no [MemoryHigh] specified, GOMEMLIMIT is set to (250MiB - 250MiB*(10%)) = 235929600.
+//   - [MemoryMax]=250M but no [MemoryHigh] specified, GOMEMLIMIT is set to (250MiB - 250MiB*(10%)) = 235929600 bytes.
 //   - [MemoryHigh]=250M but no [MemoryMax] specified, GOMEMLIMIT is set to 250MiB = 262144000 bytes.
-//   - [MemoryMax]=10G, but no [MemoryHigh] specified GOMEMLIMIT is set to (10GiB - 100MiB) = 10632560640.
+//   - [MemoryMax]=10G, but no [MemoryHigh] specified GOMEMLIMIT is set to (10GiB - 100MiB) = 10632560640 bytes.
 //
 // For Windows, [QueryInformationJobObject] API is used to get memory limits.
 // [JOBOBJECT_EXTENDED_LIMIT_INFORMATION] defines per process(ProcessMemoryLimit)

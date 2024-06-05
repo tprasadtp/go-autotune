@@ -46,10 +46,12 @@ jobs:
           DEBUG: 1
 
       - name: Compile Example Go Binary
-        run: go build -o ./example/go-autotune.exe ./example/
+        working-directory: examples/go-autotune
+        run: go build -o go-autotune.exe ./
 
       - name: Init trace Example Go Binary
-        run: example/go-autotune.exe
+        working-directory: examples/go-autotune
+        run: ./go-autotune.exe
         env:
           GODEBUG: inittrace=1
 
@@ -88,17 +90,17 @@ jobs:
           pattern: go-coverage-*
           merge-multiple: true
 
-      - name: Coverage View Percent
-        run: go tool covdata percent -i .gocover
-
       - name: Create Coverage Profile
         run: go tool covdata textfmt -i .gocover -o .gocover/coverage.out
 
-      - name: View Coverage Profile
-        run: go tool cover -func .gocover/coverage.out
-
       - name: Create Coverage Profile (HTML)
         run: go tool cover -html .gocover/coverage.out -o .gocover/coverage.html
+
+      - name: Coverage View Percent
+        run: go tool covdata percent -i .gocover
+
+      - name: View Coverage Profile
+        run: go tool cover -func .gocover/coverage.out
 
       - uses: actions/upload-artifact@v4
         with:
@@ -109,14 +111,14 @@ jobs:
   example:
     needs:
       - test
-    uses: ./.github/workflows/example.yml
     permissions:
       attestations: write
       packages: write
       id-token: write
       actions: read
       contents: read
+    uses: ./.github/workflows/example.yml
     with:
       image-name: ${{ vars.EXAMPLE_IMAGE }}
       image-push: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
-      image-tag-latest: ${{ github.ref_name == github.event.repository.default_branch }}
+      image-tag-latest: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}

@@ -256,60 +256,11 @@ tasks:
     cmds:
       - task: internal:go:clean-coverage-files
   # -----------------------------------------------------------------
-  # Cleanup generated data, cache and build artifacts
-  # -----------------------------------------------------------------
-  clean:
-    desc: "Clean cache, build artifacts etc."
-    aliases:
-      - "go:clean"
-    cmds:
-      - task: internal:go:clean-coverage-files
-      - task: internal:rmdir
-        vars:
-          DIRECTORY: "{{ .GO_COVER_DIR }}"
-      - task: internal:rm-file-glob
-        vars:
-          DIRECTORY: '{{ joinPath .ROOT_DIR "dist" }}'
-          PATTERN: "*.json"
-      - task: internal:rm-file-glob
-        vars:
-          DIRECTORY: '{{ joinPath .ROOT_DIR "dist" }}'
-          PATTERN: "*.yml"
-      - task: internal:rm-file-glob
-        vars:
-          DIRECTORY: '{{ joinPath .ROOT_DIR "dist" }}'
-          PATTERN: "*.yaml"
-      - task: internal:rmdir
-        vars:
-          DIRECTORY: '{{ joinPath .ROOT_DIR "dist" }}'
-      - task: internal:rm-file-glob
-        vars:
-          DIRECTORY: '{{ joinPath .ROOT_DIR "example" }}'
-          PATTERN: "example"
-      - task: internal:rm-file-glob
-        vars:
-          DIRECTORY: '{{ joinPath .ROOT_DIR "bin" }}'
-          PATTERN: "example"
-      - task: internal:rm-file-glob
-        vars:
-          DIRECTORY: '{{ joinPath .ROOT_DIR "example" }}'
-          PATTERN: "*.tar.gz"
-      - task: internal:rm-file-glob
-        vars:
-          DIRECTORY: '{{ joinPath .ROOT_DIR "example" }}'
-          PATTERN: "*.tar"
-      - task: internal:rmdir
-        vars:
-          DIRECTORY: "{{ .ITEM }}"
-        for:
-          - "{{ .GO_COVER_DIR }}"
-          - '{{ joinPath .ROOT_DIR "bin" }}'
-  # -----------------------------------------------------------------
   # Build example image which can be run easily.
   # -----------------------------------------------------------------
   internal:build-example-image-tarball:
     internal: true
-    dir: example
+    dir: examples/go-autotune
     prefix: "{{.TASK_GROUP_NAME}}"
     requires:
       vars:
@@ -351,74 +302,194 @@ tasks:
           --sbom=none
           --tarball {{.KO_TARBALL_OUTPUT}}
           {{.IMAGE_LABEL_FLAGS}}
-  internal:build-example-image-tarball:linux-amd64:
+  internal:build-example-image-sbom:
     internal: true
+    dir: examples/go-autotune
+    prefix: "{{.TASK_GROUP_NAME}}"
+    requires:
+      vars:
+        - "TASK_GROUP_NAME"
+        - "IMAGE_PLATFORM"
+        - "IMAGE_TARBALL"
+        - "IMAGE_VERSION"
+        - "IMAGE_NAME"
+        - "IMAGE_SBOM"
+    vars:
+      IMAGE_DIGEST:
+        sh: crane digest --tarball {{.IMAGE_TARBALL}}
+    env:
+      SYFT_CHECK_FOR_APP_UPDATE: "false"
+      SYFT_GOLANG_SEARCH_LOCAL_MOD_CACHE_LICENSES: "true"
+      SYFT_GOLANG_SEARCH_REMOTE_LICENSES: "true"
     cmds:
+      - cmd: >-
+          syft scan
+          --select-catalogers="-dotnet-portable-executable-cataloger"
+          --platform={{.IMAGE_PLATFORM}}
+          --source-name={{.IMAGE_NAME}}
+          --source-version={{.IMAGE_VERSION}}
+          --output=spdx-json={{.IMAGE_SBOM}}
+          --output=spdx-json={{ printf "%s.sbom.spdx.json" (.IMAGE_DIGEST|trimPrefix "sha256:") }}
+          --output=syft-table
+          {{.IMAGE_TARBALL}}
+  build-example-images:
+    desc: "Build example docker images"
+    aliases:
+      - "example-images-build"
+    dir: examples/go-autotune
+    vars:
+      IMAGE_NAME: '{{ default "ghcr.io/tprasadtp/go-autotune" .EXAMPLE_IMAGE }}'
+      GIT_COMMIT:
+        sh: git -c log.showSignature=false show --format=%H --quiet HEAD
+    env:
+      INTERLYNK_DISABLE_VERSION_CHECK: "true"
+    preconditions:
+      - command -v ko
+      - command -v syft
+      - command -v sbomasm
+    cmds:
+      # Linux AMD64 Image
       - task: internal:build-example-image-tarball
         vars:
           TASK_GROUP_NAME: "Linux-AMD64"
           KO_PLATFORM: "linux/amd64"
           KO_BASE_IMAGE: "cgr.dev/chainguard/static:latest"
           KO_TARBALL_OUTPUT: "linux-amd64.tar.gz"
-  internal:build-example-image-tarball:linux-arm64:
-    internal: true
-    cmds:
+      - task: internal:build-example-image-sbom
+        vars:
+          TASK_GROUP_NAME: "SBOM::Linux-AMD64"
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          IMAGE_VERSION: "{{.GIT_COMMIT}}"
+          IMAGE_TARBALL: "linux-amd64.tar.gz"
+          IMAGE_PLATFORM: linux/amd64
+          IMAGE_SBOM: "linux-amd64.sbom.spdx.json"
+
+      # Linux ARM64 Image
       - task: internal:build-example-image-tarball
         vars:
           TASK_GROUP_NAME: "Linux-ARM64"
           KO_PLATFORM: "linux/arm64"
           KO_BASE_IMAGE: "cgr.dev/chainguard/static:latest"
           KO_TARBALL_OUTPUT: "linux-arm64.tar.gz"
-  internal:build-example-image-tarball:linux-armv7:
-    internal: true
-    cmds:
+      - task: internal:build-example-image-sbom
+        vars:
+          TASK_GROUP_NAME: "SBOM::Linux-ARM64"
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          IMAGE_VERSION: "{{.GIT_COMMIT}}"
+          IMAGE_TARBALL: "linux-arm64.tar.gz"
+          IMAGE_PLATFORM: linux/arm64
+          IMAGE_SBOM: "linux-arm64.sbom.spdx.json"
+
+      # Linux ARMv7 Image
       - task: internal:build-example-image-tarball
         vars:
           TASK_GROUP_NAME: "Linux-ARMv7"
           KO_PLATFORM: "linux/arm/v7"
           KO_BASE_IMAGE: "cgr.dev/chainguard/static:latest"
-          KO_TARBALL_OUTPUT: "linux-armv7.tar.gz"
-  internal:build-example-image-tarball:windows-amd64-2019:
-    internal: true
-    cmds:
+          KO_TARBALL_OUTPUT: "linux-arm-v7.tar.gz"
+      - task: internal:build-example-image-sbom
+        vars:
+          TASK_GROUP_NAME: "SBOM::Linux-ARMv7"
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          IMAGE_VERSION: "{{.GIT_COMMIT}}"
+          IMAGE_TARBALL: "linux-arm-v7.tar.gz"
+          IMAGE_PLATFORM: linux/arm/v7
+          IMAGE_SBOM: "linux-arm-v7.sbom.spdx.json"
+
+      # Windows Server 2019 Image
       - task: internal:build-example-image-tarball
         vars:
           TASK_GROUP_NAME: "Windows-Server-2019"
           KO_PLATFORM: "windows/amd64"
           KO_BASE_IMAGE: "mcr.microsoft.com/windows/nanoserver:ltsc2019"
           KO_TARBALL_OUTPUT: "windows-2019-amd64.tar.gz"
-  internal:build-example-image-tarball:windows-amd64-2022:
-    internal: true
-    cmds:
+      - task: internal:build-example-image-sbom
+        vars:
+          TASK_GROUP_NAME: "SBOM::Windows-Server-2019"
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          IMAGE_VERSION: "{{.GIT_COMMIT}}"
+          IMAGE_TARBALL: "windows-2019-amd64.tar.gz"
+          IMAGE_PLATFORM: "windows/amd64"
+          IMAGE_SBOM: "windows-2019-amd64.sbom.spdx.json"
+
+      # Windows Server 2022 Image
       - task: internal:build-example-image-tarball
         vars:
           TASK_GROUP_NAME: "Windows-Server-2022"
           KO_PLATFORM: "windows/amd64"
           KO_BASE_IMAGE: "mcr.microsoft.com/windows/nanoserver:ltsc2022"
           KO_TARBALL_OUTPUT: "windows-2022-amd64.tar.gz"
-  internal:build-example-image-tarball:windows-amd64-2025:
-    internal: true
-    cmds:
+      - task: internal:build-example-image-sbom
+        vars:
+          TASK_GROUP_NAME: "SBOM::Windows-Server-2022"
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          IMAGE_VERSION: "{{.GIT_COMMIT}}"
+          IMAGE_TARBALL: "windows-2022-amd64.tar.gz"
+          IMAGE_PLATFORM: "windows/amd64"
+          IMAGE_SBOM: "windows-2022-amd64.sbom.spdx.json"
+
+      # Windows Server 2025 Image
       - task: internal:build-example-image-tarball
         vars:
           TASK_GROUP_NAME: "Windows-Server-2025"
           KO_PLATFORM: "windows/amd64"
           KO_BASE_IMAGE: "mcr.microsoft.com/windows/nanoserver/insider:10.0.26080.1"
           KO_TARBALL_OUTPUT: "windows-2025-amd64.tar.gz"
-  build-example-images:
-    desc: "Build example docker images"
-    aliases:
-      - "example-images-build"
-    deps:
-      - internal:build-example-image-tarball:linux-amd64
-      - internal:build-example-image-tarball:linux-arm64
-      - internal:build-example-image-tarball:linux-armv7
-      - internal:build-example-image-tarball:windows-amd64-2019
-      - internal:build-example-image-tarball:windows-amd64-2022
-      - internal:build-example-image-tarball:windows-amd64-2025
+      - task: internal:build-example-image-sbom
+        vars:
+          TASK_GROUP_NAME: "SBOM::Windows-Server-2025"
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          IMAGE_VERSION: "{{.GIT_COMMIT}}"
+          IMAGE_TARBALL: "windows-2025-amd64.tar.gz"
+          IMAGE_PLATFORM: "windows/amd64"
+          IMAGE_SBOM: "windows-2025-amd64.sbom.spdx.json"
+
+      # Assemble SBOM for all images.
+      # This helps OSV scanner run only once and get all the data.
+      - cmd: >-
+          sbomasm assemble
+          --name={{.IMAGE_NAME}}
+          --version={{.GIT_COMMIT}}
+          --type=container
+          --output index.sbom.spdx.json
+          linux-amd64.sbom.spdx.json
+          linux-arm64.sbom.spdx.json
+          linux-arm-v7.sbom.spdx.json
+          windows-2019-amd64.sbom.spdx.json
+          windows-2022-amd64.sbom.spdx.json
+          windows-2025-amd64.sbom.spdx.json
+  internal:copy-index-sbom-to-digest:
+    internal: true
+    dir: examples/go-autotune
+    requires:
+      vars:
+        - INDEX_IMAGE
+    vars:
+      INDEX_DIGEST:
+        sh: crane digest {{.INDEX_IMAGE}}
+      INDEX_DIGEST_SBOM_FILE: '{{ .INDEX_DIGEST | trimPrefix "sha256:" }}.sbom.spdx.json'
+    cmds:
+      - cmd: >-
+          cp index.sbom.spdx.json {{.INDEX_DIGEST_SBOM_FILE}}
+        platforms:
+          - linux
+          - darwin
+          - freebsd
+          - netbsd
+          - dragonfly
+          - openbsd
+      - cmd: >-
+          powershell.exe
+          -NonInteractive
+          -NoProfile
+          -NoLogo
+          -Command
+          'Copy-Item index.sbom.spdx.json -Destination {{.INDEX_DIGEST_SBOM_FILE}}'
+        platforms:
+          - windows
   push-example-images:
     desc: "Push example images."
-    dir: example
+    dir: examples/go-autotune
     aliases:
       - "example-images-push"
     vars:
@@ -434,7 +505,7 @@ tasks:
       LINUX_ARM64_DIGEST:
         sh: crane digest --tarball linux-arm64.tar.gz
       LINUX_ARMV7_DIGEST:
-        sh: crane digest --tarball linux-armv7.tar.gz
+        sh: crane digest --tarball linux-arm-v7.tar.gz
       WINDOWS_2019_AMD64_DIGEST:
         sh: crane digest --tarball windows-2019-amd64.tar.gz
       WINDOWS_2022_AMD64_DIGEST:
@@ -455,7 +526,7 @@ tasks:
     cmds:
       - cmd: crane push linux-amd64.tar.gz {{.IMAGE}}@{{.LINUX_AMD64_DIGEST}}
       - cmd: crane push linux-arm64.tar.gz {{.IMAGE}}@{{.LINUX_ARM64_DIGEST}}
-      - cmd: crane push linux-armv7.tar.gz {{.IMAGE}}@{{.LINUX_ARMV7_DIGEST}}
+      - cmd: crane push linux-arm-v7.tar.gz {{.IMAGE}}@{{.LINUX_ARMV7_DIGEST}}
       - cmd: crane push windows-2019-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2019_AMD64_DIGEST}}
       - cmd: crane push windows-2022-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2022_AMD64_DIGEST}}
       - cmd: crane push windows-2025-amd64.tar.gz {{.IMAGE}}@{{.WINDOWS_2025_AMD64_DIGEST}}
@@ -465,5 +536,62 @@ tasks:
           {{- if eq .TAG_LATEST "true" }}
             {{- printf `crane index append --tag=%s:latest%s %s` .IMAGE .IMG_TAG_SUFFIX .MANIFEST_FLAGS }}
           {{- else }}
-            {{- printf `printf "skipped: applying latest tag\n"` }}
+            {{- printf `echo "skipped: applying latest tag"` }}
           {{- end }}
+      # Copy Index SBOM to its digest counterpart.
+      - task: internal:copy-index-sbom-to-digest
+        vars:
+          INDEX_IMAGE: "{{.IMAGE}}:{{.GIT_COMMIT}}{{.IMG_TAG_SUFFIX}}"
+  # -----------------------------------------------------------------
+  # Cleanup generated data, cache and build artifacts
+  # -----------------------------------------------------------------
+  clean:
+    desc: "Clean cache, build artifacts etc."
+    aliases:
+      - "go:clean"
+    cmds:
+      - task: internal:go:clean-coverage-files
+      - task: internal:rm-file-glob
+        vars:
+          DIRECTORY: '{{ joinPath .ROOT_DIR "dist" }}'
+          PATTERN: "{{.ITEM}}"
+        for:
+          - "*.json"
+          - "*.yml"
+          - "*.yaml"
+      - task: internal:rm-file-glob
+        vars:
+          DIRECTORY: '{{ joinPath .ROOT_DIR "examples" "go-autotune" }}'
+          PATTERN: "{{.ITEM}}"
+        for:
+          - "go-autotune"
+          - "*.exe"
+          - "*.tar"
+          - "*.tar.gz"
+          - "*.sbom"
+          - "*.sbom.att"
+          - "*.sbom.att.json"
+          - "*.sbom.spdx"
+          - "*.sbom.spdx.json"
+          - "*.sbom.spdx.json"
+          - "*.sbom.cyclonedx.xml"
+          - "*.sbom.cyclonedx.json"
+          - "*.sigstore.pem"
+          - "*.sigstore.sig"
+          - "*.sigstore.bundle"
+          - "*.intoto.json"
+          - "*.in-toto.json"
+          - "*.jsonl"
+      - task: internal:rm-file-glob
+        vars:
+          DIRECTORY: '{{ joinPath .ROOT_DIR ".task" "checksum" }}'
+          PATTERN: "*"
+      - task: internal:rmdir
+        vars:
+          DIRECTORY: "{{ .ITEM }}"
+        for:
+          - "{{ .GO_COVER_DIR }}"
+          - '{{ joinPath .ROOT_DIR "bin" }}'
+          - '{{ joinPath .ROOT_DIR ".task" "checksum" }}'
+          - '{{ joinPath .ROOT_DIR ".task" }}'
+          - '{{ joinPath .ROOT_DIR "dist" }}'

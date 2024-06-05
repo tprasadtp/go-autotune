@@ -40,7 +40,7 @@ func Current() int {
 //
 // Workload with fractional CPU quota (for example, 2.1) may encounter some CPU
 // throttling. For workloads sensitive to CPU throttling, when using [Vertical Pod autoscaling]
-// it is recommended to enable [cpu-integer-post-processor-enabled], to ensure CPU recommendation
+// it is recommended to set [cpu-integer-post-processor-enabled], to ensure CPU recommendation
 // is an integer.
 //
 // For Windows containers with Hyper-V isolation, hypervisor emulates specified

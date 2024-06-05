@@ -18,7 +18,7 @@ Supports _both_ Windows and Linux.
 
 ## How
 
-- For Linux, CPU and memory limits are obtained from cgroup v2 interface files.
+- For Linux, CPU and memory limits are obtained from [cgroup v2 interface files][cgroup v2].
 - For Windows, [Job Objects API] is used.
 
 ## Usage
@@ -29,11 +29,11 @@ Simply `_` import `github.com/tprasadtp/go-autotune` in your main package.
 package main
 
 import (
-	_ "github.com/tprasadtp/go-autotune" // Automatically adjusts GOMAXPROCS & GOMEMLIMIT
+	_ "github.com/tprasadtp/go-autotune"
 )
 ```
 
-See [API docs] and [example](./example/) for more examples and advanced use cases.
+See [API docs] and [example](./examples) for more examples and advanced use cases.
 
 ## Requirements (Linux)
 
@@ -94,7 +94,7 @@ linters:
 
 Example docker images are only provided for limited number of platforms/architectures.
 However the library will work on all platforms which meet the requirements specified above,
-even when running outside of containers. See [example](./example/README.md) for more info.
+even when running outside of containers. See [example](./examples/go-autotune/README.md) for more info.
 
 ```console
 docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
@@ -102,11 +102,11 @@ docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 
 ### Windows
 
-[![windows-docker](./example/screenshots/windows-docker.svg)][example]
+[![windows-docker](./examples/screenshots/windows-docker.svg)][example]
 
 ### Linux
 
-[![linux-docker](./example/screenshots/linux-docker.svg)][example]
+[![linux-docker](./examples/screenshots/linux-docker.svg)][example]
 
 ## Testing
 
@@ -127,9 +127,10 @@ go test -cover -v ./...
 [GOMAXPROCS]: https://pkg.go.dev/runtime#GOMAXPROCS
 [golangci-lint]: https://golangci-lint.run/
 [b8df7f8]: https://github.com/systemd/systemd/pull/23887
-[example]: ./example/README.md
+[example]: ./examples/go-autotune/README.md
 [systemd-run]: https://www.freedesktop.org/software/systemd/man/latest/systemd-run.html
 [Job Objects API]: https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects
+[cgroup v2]: https://docs.kernel.org/admin-guide/cgroup-v2.html
 [enable-cpu-delegation]: https://github.com/systemd/systemd/issues/12362#issuecomment-485762928
 [pkg-autotune]: https://https://pkg.go.dev/github.com/tprasadtp/go-autotune
 [pkg-maxprocs]: https://https://pkg.go.dev/github.com/tprasadtp/go-autotune/maxprocs

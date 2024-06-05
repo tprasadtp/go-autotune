@@ -14,9 +14,10 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 //nolint:gochecknoglobals
@@ -125,7 +126,7 @@ func trampoline(tb testing.TB, opts Options, verify func(tb testing.TB), configu
 
 	// User or system systemd instance to use.
 	userOrSystem := "--user"
-	if syscall.Getuid() == 0 {
+	if unix.Geteuid() == 0 {
 		userOrSystem = "--system"
 	}
 

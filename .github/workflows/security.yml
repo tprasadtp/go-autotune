@@ -1,0 +1,80 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: security
+on:
+  schedule:
+    # At 18:25 on Saturday
+    - cron: '25 18 * * 6'
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        type: string
+        required: false
+        default: "latest"
+        description: "Image tag to scan."
+
+permissions: {}
+
+jobs:
+  vulnerability-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      outcome: ${{ steps.vulnerability-scan.outcome }}
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Install OSV Scanner
+        run: go install github.com/google/osv-scanner/cmd/osv-scanner@latest
+
+      - name: Download and Verify SBOM
+        run: >-
+          gh attestation verify
+          --deny-self-hosted-runners
+          --predicate-type https://spdx.dev/Document/v2.3
+          --repo ${{ github.repository }}
+          --format json
+          --jq '.[].verificationResult.statement.predicate'
+          oci://${{ vars.EXAMPLE_IMAGE }}:${{ inputs.image-tag }} > index.sbom.spdx.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: OSV Scanner
+        id: vulnerability-scan
+        continue-on-error: true
+        run: >-
+          osv-scanner
+          --verbosity=verbose
+          --format gh-annotations
+          --sbom=index.sbom.spdx.json
+
+  rebuild-images:
+    needs:
+      - vulnerability-scan
+    if: ${{ needs.vulnerability-scan.outputs.outcome == 'failure' }}
+    uses: ./.github/workflows/example.yml
+    permissions:
+      attestations: write
+      packages: write
+      id-token: write
+      actions: read
+      contents: read
+    with:
+      image-name: ${{ vars.EXAMPLE_IMAGE }}
+      image-push: true
+      image-tag-latest: ${{ inputs.image-tag == 'latest' }}

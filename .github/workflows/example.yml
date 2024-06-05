@@ -21,34 +21,52 @@ on:
         default: false
         description: "Sign and Push OCI image to registry."
 jobs:
-  build:
+  build-images:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     outputs:
-      index-digest: ${{ steps.index-digest.outputs.digest }}
-      digests-list-json: ${{ steps.digests-list-json.outputs.json }}
+      index-digest: ${{steps.index-digest.outputs.output}}
+      json-digests-all: ${{ steps.json-digests-all.outputs.output }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
+      # See - https://github.com/actions/setup-go/issues/407
+      - name: Check Latest Go Version from Upstream
+        id: latest-go-version
+        run: |
+          set -eo pipefail
+          output="$(curl -sfL "https://go.dev/dl/?mode=json" | jq -Mr '.[0].version')"
+          echo "output=${output#go}" | tee -a "${GITHUB_OUTPUT}"
+
+      # Always check for latest, as setup-go can be out of sync with upstream.
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version: ${{ steps.latest-go-version.outputs.output }}
           check-latest: true
 
-      - name: Install Task
-        run: go install github.com/go-task/task/v3/cmd/task@latest
+      - name: Setup syft
+        uses: anchore/sbom-action/download-syft@v0
 
-      - name: Install Ko
+      - name: Setup Ko
         uses: ko-build/setup-ko@v0.6
 
-      - name: Install crane
+      - name: Setup Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Setup crane
         run: go install github.com/google/go-containerregistry/cmd/crane@latest
+
+      - name: Setup sbomasm
+        run: go install github.com/interlynk-io/sbomasm@latest
+
+      - name: Setup OSV Scanner
+        run: go install github.com/google/osv-scanner/cmd/osv-scanner@latest
 
       - name: Build Images
         run: >-
@@ -60,6 +78,14 @@ jobs:
           build-example-images
         env:
           EXAMPLE_IMAGE: ${{ inputs.image-name }}
+
+      - name: Scan for Vulnerabilities using OSV scanner
+        working-directory: examples/go-autotune
+        run: >-
+          osv-scanner
+          --verbosity=verbose
+          --format gh-annotations
+          --sbom=index.sbom.spdx.json
 
       - name: Login to GitHub Container Registry
         if: ${{ inputs.image-push }}
@@ -78,78 +104,141 @@ jobs:
 
       - name: Get Index Digest
         if: ${{ inputs.image-push }}
-        shell: bash
         id: index-digest
         run: |
-          set -eo pipefail
-          echo "digest=$(crane digest ${{vars.EXAMPLE_IMAGE}}:${{github.sha}})" >> "$GITHUB_OUTPUT"
+          output=$(crane digest ${{vars.EXAMPLE_IMAGE}}:${{github.sha}}| cut -f2 -d ':') >> "$GITHUB_OUTPUT"
+          if [[ -z $output ]]; then
+            echo "failed to build digests list"
+            exit 1
+          fi
+          echo output=${output} | tee -a "$GITHUB_OUTPUT"
 
-      - name: Get Digests of Index and Manifests
+      # Uploading SBOMs must be done after push, as task will update SBOM of index
+      # with its digest counterpart which is only available after pushing the image.
+      - name: Upload SBOM Artifacts
         if: ${{ inputs.image-push }}
-        shell: bash
-        id: digests-list-json
-        run: |
-          set -eo pipefail
-          crane digest ${{vars.EXAMPLE_IMAGE}}@${{steps.index-digest.outputs.digest}} > digests.txt
-          crane manifest ${{vars.EXAMPLE_IMAGE}}@${{steps.index-digest.outputs.digest}} |jq -r '.manifests| .[] | .digest' >> digests.txt
-          echo "json=$(jq -Mcn --arg v "$(cat digests.txt)" '{digest:$v|split("\n")}')" >> "$GITHUB_OUTPUT"
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-sboms
+          path: examples/go-autotune/*.sbom.spdx.json
+          if-no-files-found: error
+          retention-days: 30
 
-  provenance:
+      - name: Build Matrix JSON with All Digests
+        if: ${{ inputs.image-push }}
+        id: json-digests-all
+        run: |
+          output=$(crane manifest ${IMAGE} | jq -cM '[.manifests[].digest | sub("sha256:";"")] + [env.INDEX_DIGEST|sub("sha256:";"")] | {digest:.}')
+          if [[ -z $output ]]; then
+            echo "failed to build digests list"
+            exit 1
+          fi
+          echo output=${output} | tee -a "$GITHUB_OUTPUT"
+        env:
+          IMAGE: ${{ format('{0}@sha256:{1}', vars.EXAMPLE_IMAGE, steps.index-digest.outputs.output) }}
+          INDEX_DIGEST: ${{ steps.index-digest.outputs.output }}
+
+  provenance-slsa:
     if: ${{ inputs.image-push }}
     needs:
-      - build
+      - build-images
     permissions:
       contents: read
       actions: read
       id-token: write
       packages: write
+      attestations: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.build.outputs.digests-list-json) }}
+      matrix: ${{ fromJson(needs.build-images.outputs.json-digests-all) }}
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
       image: ${{ inputs.image-name }}
-      digest: ${{ matrix.digest }}
+      digest: ${{ format('sha256:{0}', matrix.digest) }}
       registry-username: ${{ github.actor }}
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
 
-  # Skip uploading to GHCR because this is not slsa build level 3,
-  # as L3 requires reusable workflows outside of caller's control.
-  provenance-github:
+  provenance-sbom:
     if: ${{ inputs.image-push }}
-    needs:
-      - build
-    permissions:
-      contents: read
-      actions: read
-      id-token: write
-      attestations: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.build.outputs.digests-list-json) }}
+      matrix: ${{ fromJson(needs.build-images.outputs.json-digests-all) }}
+    needs:
+      - build-images
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     runs-on: ubuntu-latest
     steps:
-      - name: Generate build provenance
+      - name: Download SBOMs
+        uses: actions/download-artifact@v4
+        with:
+          name: image-sboms
+          path: build/sboms/
+          merge-multiple: true
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign SBOM
+        uses: actions/attest-sbom@v1
+        with:
+          subject-name: ${{ inputs.image-name }}
+          subject-digest:  ${{ format('sha256:{0}', matrix.digest) }}
+          sbom-path: "build/sboms/${{ matrix.digest }}.sbom.spdx.json"
+          push-to-registry: false
+
+  # See - https://github.com/slsa-framework/slsa-github-generator/issues/3668
+  provenance-slsa-github-native:
+    if: ${{ inputs.image-push }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.build-images.outputs.json-digests-all) }}
+    needs:
+      - build-images
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: GitHub Native SLSA provenance
         uses: actions/attest-build-provenance@v1
         with:
           subject-name: ${{ inputs.image-name }}
-          subject-digest: ${{ matrix.digest }}
-          push-to-registry: false # not slsa level 3
+          subject-digest: ${{ format('sha256:{0}', matrix.digest) }}
+          push-to-registry: false
 
   verify:
     if: ${{ inputs.image-push }}
     needs:
-      - build
-      - provenance
-      - provenance-github
+      - build-images
+      - provenance-slsa
+      - provenance-sbom
+      - provenance-slsa-github-native
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
+      attestations: read
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.build.outputs.digests-list-json) }}
+      matrix: ${{ fromJson(needs.build-images.outputs.json-digests-all) }}
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -168,7 +257,7 @@ jobs:
         run: >-
           slsa-verifier
           --source-uri github.com/${{ github.repository }}
-          verify-image ${{ inputs.image-name }}@${{ matrix.digest }}
+          verify-image ${{ inputs.image-name }}@${{ format('sha256:{0}', matrix.digest) }}
 
       - name: Verify SLSA Provenance Using Cosign
         run: >-
@@ -178,14 +267,24 @@ jobs:
           --certificate-github-workflow-repository "${{ github.repository }}"
           --type=slsaprovenance
           --certificate-github-workflow-sha ${{ github.sha }}
-          ${{ inputs.image-name }}@${{matrix.digest}}
+          ${{ inputs.image-name }}@${{ format('sha256:{0}', matrix.digest) }}
 
-      - name: Verify GitHub Native SLSA Provenance
+      - name: Verify GitHub Native SLSA Provenance Using gh CLI
         run: >-
           gh attestation verify
+          --deny-self-hosted-runners
           --predicate-type "https://slsa.dev/provenance/v1"
           --repo ${{ github.repository }}
+          oci://${{ inputs.image-name }}@${{ format('sha256:{0}', matrix.digest) }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify GitHub Native SBOM Provenance Using gh CLI
+        run: >-
+          gh attestation verify
           --deny-self-hosted-runners
-          oci://${{ inputs.image-name }}@${{matrix.digest}}
+          --predicate-type https://spdx.dev/Document/v2.3
+          --repo ${{ github.repository }}
+          oci://${{ inputs.image-name }}@${{ format('sha256:{0}', matrix.digest) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

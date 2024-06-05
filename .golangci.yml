@@ -74,22 +74,16 @@ linters-settings:
     min-len: 3
     # Minimum occurrences of constant string count to trigger issue.
     # Default: 3
-    min-occurrences: 3
+    min-occurrences: 5
     # Ignore test files.
     # Default: false
     ignore-tests: true
     # Look for existing constants matching the values.
     # Default: true
-    match-constant: false
-    # Search also for duplicated numbers.
+    match-constant: true
+    # Search also for duplicated numbers..
     # Default: false
-    numbers: true
-    # Minimum value, only works with goconst.numbers
-    # Default: 3
-    min: 3
-    # Maximum value, only works with goconst.numbers
-    # Default: 3
-    max: 3
+    numbers: false
     # Ignore when constant is not used as function argument.
     # Default: true
     ignore-calls: true
@@ -117,10 +111,9 @@ linters-settings:
     # Default: {}
     values:
       regexp:
-        # Define here regexp type values.
-        # for example:
-        license: "(BSD\\-3\\-Clause|GPL\\-3\\.0\\-only|GPL\\-2.0\\-only|AGPL\\-3\\.0\\-only|Apache\\-2\\.0|MIT|MPL\\-2.0)"
-        copyright: "([Cc]opyright\\s+((\\(c\\)|©)\\s+)?[0-9]{4}(.*))"
+        # Allows MIT, Apache 2.0 and BSD BSD-3-Clause licenses.
+        license: '(MIT|Apache-2.0|BSD-3-Clause)'
+        copyright: '([Cc]opyright\s+((\(c\)|©)\s+)?[0-9]{4}(.*))'
     template: |-
       SPDX-FileCopyrightText: {{ copyright }}
       SPDX-License-Identifier: {{ license }}
@@ -155,7 +148,7 @@ linters-settings:
         - github.com/stretchr/testify:
             reason: >-
               Do not use generic assertion packages for tests.
-              For comparing complex structs, use github.com/google/go-cmp/cmp.
+              For comparing very large complex structs, use github.com/google/go-cmp/cmp.
 
         # Go 1.12 introduced os.UserHomeDir().
         - github.com/mitchellh/go-homedir:
@@ -167,9 +160,9 @@ linters-settings:
         - go.uber.org/multierr:
             reason: "Use errors.Join() from from stdlib."
         - github.com/pkg/errors:
-            reason: "Use error wrapping directive(%w) in stdlib"
+            reason: "Use error wrapping directive(%w) in stdlib."
 
-        # Go 1.19 introduced New atomic types.
+        # Go 1.19 introduced new atomic types.
         - go.uber.org/atomic:
             reason: "Use sync/atomic from stdlib."
 
@@ -224,13 +217,13 @@ linters-settings:
         # Use github.com/tprasadtp/go-githubapp
         - github.com/bradleyfalzon/ghinstallation:
             reason: >-
-              Does not support KMS backed keys or keys implementing crypto.Signer.
+              Does not support KMS backed keys or types implementing crypto.Signer.
             recommendations:
               - github.com/tprasadtp/go-githubapp
 
         - github.com/bradleyfalzon/ghinstallation/v2:
             reason: >-
-              Does not support KMS backed keys or keys implementing crypto.Signer.
+              Does not support KMS backed keys or types implementing crypto.Signer.
             recommendations:
               - github.com/tprasadtp/go-githubapp
 
@@ -280,6 +273,11 @@ linters-settings:
       - p: '^fmt\.Print.*$'
         msg: "Do not commit print statements."
         pkg: "^fmt$"
+
+      # time.Sleep
+      - p: '^time\.Sleep.*$'
+        msg: "Do not use time.Sleep in non-example code."
+        pkg: "^time$"
 
       # Use secure DLL loading on Windows.
       - p: '^syscall\.(Must)?LoadDLL.*$'
@@ -687,6 +685,7 @@ issues:
       linters:
         - funlen
         - gochecknoglobals
+        - gochecknoinits
         - gocognit
         - goconst
         - gocyclo
@@ -698,10 +697,17 @@ issues:
       linters:
         - forbidigo
         - gochecknoglobals
+        - gochecknoinits
         - gocognit
         - gocyclo
         - sloglint
         - wrapcheck
+
+    # Disable some linters for main.go.
+    - path: 'main\.go'
+      linters:
+        - gochecknoglobals
+        - gochecknoinits
 
     # Disable some linters for examples.
     - path: '(.*)(example(s)?)(.*)?(_test)\.go'

@@ -24,7 +24,7 @@ for images, though only at [SLSA build level 2][slsa-build-l2], [due to isolatio
 
 <div align="center">
 
-[![slsa-level3-badge](./images/slsa-level3-logo.svg)][slsa-build-l3]
+[![slsa-level3-badge](../logos/slsa-level3-logo.svg)][slsa-build-l3]
 
 </div>
 
@@ -35,7 +35,7 @@ docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 
 ### Docker (Linux)
 
-![linux-stdout](./screenshots/linux-docker.svg)
+![linux-stdout](../screenshots/linux-docker.svg)
 
 ### Docker (Windows)
 
@@ -44,38 +44,22 @@ docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
 > _Example docker images_ are only provided for Server 2019, Server 2022 and
 > Server 2025 because of [Windows container version compatibility].
 
-![windows-stdout](./screenshots/windows-docker.svg)
+![windows-stdout](../screenshots/windows-docker.svg)
 
-![windows-server](./screenshots/windows-http-server.png)
+![windows-server](../screenshots/windows-http-server.png)
 
 ## Systemd
 
-- Clone this repository.
+- Install the example binary.
 
   ```bash
-  git clone --depth=1 https://github.com/tprasadtp/go-autotune
-  ```
-
-- Checkout the repository.
-
-  ```bash
-  cd go-autotune
-  ```
-
-- Build the example binary and install it to `~/.local/bin` as "go-autotune".
-
-  ```bash
-  go build -trimpath \
-    -ldflags='-w -s' \
-    -tags=osusergo,netgo \
-    -o ~/.local/bin/go-autotune \
-    github.com/tprasadtp/go-autotune/example
+  go install github.com/tprasadtp/go-autotune/example@latest
   ```
 
 - Verify that CPU and memory controllers are available for user level units.
   If output does not contain strings `cpu` and `memory`, CPU controllers are not available for
   user level units. Install the binary to a root accessible location (like `/usr/local/bin`)
-  and run the `systemd-run` commands without the `--user` flag.
+  by setting `GOBIN` environment and run the `systemd-run` commands without the `--user` flag.
 
   ```bash
   systemctl show user@$(id -u).service -P DelegateControllers
@@ -87,7 +71,7 @@ docker run --rm --cpus=1.5 --memory=250M ghcr.io/tprasadtp/go-autotune
   systemd-run -Pq --user -p "CPUQuota=150%" -p MemoryHigh=250M -p MemoryMax=300M go-autotune
   ```
 
-  ![linux-systemd](./screenshots/linux-systemd-run.svg)
+  ![linux-systemd](../screenshots/linux-systemd-run.svg)
 
 [Windows container version compatibility]: https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility
 [slsa-build-l3]: https://slsa.dev/spec/v1.0/levels#build-l3
