@@ -33,9 +33,8 @@ jobs:
           go-version: stable
 
       - name: GoReleaser Snapshot
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
           args: release --clean --fail-fast --snapshot
 
   release:
@@ -55,9 +54,8 @@ jobs:
           go-version: stable
 
       - name: GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
           args: release --clean --fail-fast
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
