@@ -340,13 +340,19 @@ linters-settings:
     # Default: []
     allow-no-explanation:
       - cyclop
+      - dupl
       - errcheck
+      - forbidigo
       - funlen
       - gochecknoglobals
+      - gochecknoinits
       - gocognit
+      - goconst
       - gocyclo
       - lll
       - nestif
+      - sloglint
+      - wrapcheck
     # Enable to require an explanation of nonzero length after each nolint directive.
     # Default: false
     require-explanation: true
@@ -672,6 +678,7 @@ issues:
         - containedctx
         - cyclop
         - dupl
+        - forbidigo
         - funlen
         - gocognit
         - goconst
@@ -683,6 +690,9 @@ issues:
     # Disable some linters for generated code.
     - path: 'testdata\.go'
       linters:
+        - cyclop
+        - dupl
+        - forbidigo
         - funlen
         - gochecknoglobals
         - gochecknoinits
@@ -695,7 +705,10 @@ issues:
     # Disable some linters for ad-hoc scripts and example scripts.
     - path: '(example|generate)\.go'
       linters:
+        - cyclop
+        - dupl
         - forbidigo
+        - funlen
         - gochecknoglobals
         - gochecknoinits
         - gocognit
@@ -714,6 +727,7 @@ issues:
       linters:
         - dupl
         - forbidigo
+        - funlen
         - gochecknoglobals
         - gocognit
         - gocyclo
