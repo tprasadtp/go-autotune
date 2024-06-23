@@ -54,7 +54,7 @@ jobs:
         uses: anchore/sbom-action/download-syft@v0
 
       - name: Setup Ko
-        uses: ko-build/setup-ko@v0.6
+        uses: ko-build/setup-ko@v0.7
 
       - name: Setup Task
         run: go install github.com/go-task/task/v3/cmd/task@latest
